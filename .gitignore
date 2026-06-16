@@ -27,6 +27,14 @@ npm-debug.log*
 dist/
 build/
 
-# Local storage (user data)
-# 不忽略 src/ 下的代码
-# 忽略用户生成的数据（如果有的话）
+# 大文件（视频、二进制等）
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.zip
+*.rar
+*.7z
+
+# 3642703239 目录（看起来是其他项目）
+3642703239/
