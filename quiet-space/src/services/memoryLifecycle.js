@@ -7,9 +7,10 @@ const MemoryLifecycle = {
     /**
      * 核心入口：用户每次输入时自动触发
      * @param {string} userMessage - 用户消息
+     * @param {boolean} enableDebug - 是否启用调试模式
      * @returns {Object} Working Memory
      */
-    async onUserMessage(userMessage) {
+    async onUserMessage(userMessage, enableDebug = true) {
         console.log('[MemoryLifecycle] Processing user message...');
 
         // 1. 构建上下文（已有）
@@ -38,6 +39,11 @@ const MemoryLifecycle = {
             people: workingMemory.relevantPeople?.length || 0,
             emotion: workingMemory.emotionContext?.currentEmotion || 'none'
         });
+
+        // 6. 运行 Debug 层（如果启用）
+        if (enableDebug && typeof MemoryDebug !== 'undefined') {
+            MemoryDebug.run(userMessage, { workingMemory });
+        }
 
         return workingMemory;
     },
