@@ -55,6 +55,8 @@ const DB = {
                     memoriesStore.createIndex('decayScore', 'decayScore', { unique: false });
                     memoriesStore.createIndex('status', 'status', { unique: false });  // active/archived
                     memoriesStore.createIndex('startDate', 'startDate', { unique: false });
+                    memoriesStore.createIndex('threadKey', 'threadKey', { unique: false });
+                    memoriesStore.createIndex('instance', 'instance', { unique: false });
                 }
 
                 // 情绪时间线 - 记录每次对话/日记的情绪变化

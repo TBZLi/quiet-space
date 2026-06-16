@@ -88,8 +88,11 @@
         "startDate": "2026-04-01 或 null",
         "endDate": "2026-06-20 或 null",
         "isRecurring": false,
-        "periodLabel": "2026春季学期 或 null"
-      }
+        "periodLabel": "2026春季学期 或 null",
+        "timeBucket": "2026-Q2 或 null"
+      },
+      "threadKey": "computer_exam 或 null",
+      "instance": "2026_spring 或 null"
     }
   ]
 }
@@ -148,6 +151,7 @@
 - `endDate`：事件结束时间（ISO 格式或 null，进行中为 null）
 - `isRecurring`：是否周期性事件（如"每周例会""每年生日"）
 - `periodLabel`：时间标签（如"2026春季学期""大三上学期"）
+- `timeBucket`：时间桶（如"2026-Q2""2025-Q4"），用于快速时间分组
 
 **时间提取规则：**
 - 从对话中提取明确的时间信息
@@ -155,6 +159,25 @@
 - 如果用户说"下周考试"，startDate 为下周日期
 - 如果没有明确时间信息，temporal 为 null
 - 不要猜测时间，宁可缺失也不要错误
+
+### threadKey（线程标识符）
+- 用于识别同类事件的唯一标识
+- 例如："computer_exam"、"ai_diary_project"、"relationship_xiaowang"
+- 生成规则：英文小写 + 下划线，简洁明确
+- 如果不是 thread 类型，为 null
+
+### instance（线程实例）
+- 区分不同时间的同类事件
+- 例如："2025_autumn"、"2026_spring"、"2027_postgraduate"
+- 生成规则：年份 + 季节/阶段
+- 如果不是 thread 类型，为 null
+
+**Thread 识别规则：**
+- 用户提到"考试" → threadKey: "exam"
+- 用户提到"毕业设计" → threadKey: "graduation_project"
+- 用户提到"考研" → threadKey: "postgraduate_exam"
+- 用户提到"我的AI日记项目" → threadKey: "ai_diary_project"
+- 同一 threadKey 的不同 instance 代表不同时间的同类事件
 
 ## 约束
 

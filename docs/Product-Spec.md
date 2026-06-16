@@ -58,6 +58,32 @@
    - 人格是可插拔的
    - 架构干净，扩展性强
 
+## Memory Engine V2 架构（待实现）
+
+```
+Raw Conversation（原始对话）
+        ↓
+Memory Extraction（记忆提取）
+        ↓
+Memory Consolidation（记忆合并）
+        ↓
+Temporal Reasoning（时间推理）← 新增
+        ↓
+Thread Graph（线程图谱）← 新增
+        ↓
+Recall Ranking（召回排序）
+        ↓
+Companion Response（陪伴回复）
+```
+
+**V2 新增模块：**
+
+| 模块 | 职责 | 核心能力 |
+|------|------|----------|
+| Temporal Reasoning | 时间推理 | 区分 2025考试 vs 2026考试 |
+| Thread Graph | 线程图谱 | 事件链演化（构思→开发→完成） |
+| Recall Ranking | 召回排序 | 自然人格化召回，不暴露记忆机制 |
+
 ## 首页入口
 
 用户打开软件后，看到三个主入口，不直接进入任何功能，而是先选择"此刻想做什么"：
@@ -627,7 +653,7 @@
 | `diaries` | 日记 | id, title, content, emotions[], date, source, messages[] |
 | `chats` | 对话 | id, title, messages[{role, content, timestamp, analysis?}], date, emotionSummary{primary, secondary, intensity} |
 | `fragments` | 碎碎念 | id, text, date, emotion, organized, diaryId |
-| `memories` | AI记忆 | id, type, content, importance, confidence, isConfirmed, sourceId, tags[], lastReferencedAt, referenceCount, decayScore, status, temporal{startDate,endDate,isRecurring,periodLabel} |
+| `memories` | AI记忆 | id, type, content, importance, confidence, isConfirmed, sourceId, tags[], lastReferencedAt, referenceCount, decayScore, status, temporal{startDate,endDate,isRecurring,periodLabel,timeBucket}, threadKey, instance, parentThreadId |
 | `emotionTimeline` | 情绪时间线 | id, timestamp, sourceId, sourceType, emotions{anxiety:0.7,...}, dominantEmotion |
 | `settings` | 设置 | 键值对存储 |
 | `videoBackground` | 视频背景 | customVideos[], activeVideoId |
@@ -652,7 +678,10 @@
 | `referenceCount` | 被 AI 引用的次数，避免"记忆复读机" |
 | `decayScore` | 0-1，记忆衰减分数，随时间自然衰减 |
 | `status` | 记忆状态：active/archived |
-| `temporal` | 时间上下文：{startDate, endDate, isRecurring, periodLabel} |
+| `temporal` | 时间上下文：{startDate, endDate, isRecurring, periodLabel, timeBucket} |
+| `threadKey` | 线程标识符（如"computer_exam"），用于识别同类事件 |
+| `instance` | 线程实例（如"2026_spring"），区分不同时间的同类事件 |
+| `parentThreadId` | 父线程 ID，用于构建事件链 |
 
 #### 时间上下文说明
 
@@ -662,6 +691,29 @@
 | `endDate` | 事件结束时间（进行中为 null） |
 | `isRecurring` | 是否周期性事件（如"每周例会"） |
 | `periodLabel` | 时间标签（如"2026春季学期"） |
+| `timeBucket` | 时间桶（如"2026-Q2"），用于快速时间分组 |
+
+#### Thread 说明
+
+| 字段 | 说明 | 示例 |
+|------|------|------|
+| `threadKey` | 线程类型标识 | "computer_exam", "ai_diary_project" |
+| `instance` | 线程实例标识 | "2025_autumn", "2026_spring" |
+| `parentThreadId` | 父线程 ID | 构建事件链（构思→开发→完成） |
+
+**示例：**
+```json
+{
+  "threadKey": "computer_exam",
+  "instance": "2026_spring",
+  "temporal": {
+    "startDate": "2026-05-01",
+    "endDate": null,
+    "periodLabel": "2026春季学期",
+    "timeBucket": "2026-Q2"
+  }
+}
+```
 
 #### Thread 状态说明
 
@@ -731,10 +783,10 @@
 
 ---
 
-**文档版本**：2.6.0
+**文档版本**：2.7.0
 
 **最后更新**：2026-06-15
 
-**重大变更**：明确四层架构（Persona/Companion/Memory Engine/Data），记忆引擎与人格解耦
+**重大变更**：Memory Engine V2 架构，支持时间推理、线程图谱、自然人格化召回
 
-**下次更新计划**：Prompt 代码实现后更新
+**下次更新计划**：V2 模块实现后更新

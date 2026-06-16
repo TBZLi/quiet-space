@@ -20,6 +20,7 @@
   - Memory Engine（记忆系统）
   - Data Layer（数据库）
 - **核心原则**：记忆引擎是共享的，人设只影响表达方式
+- **Memory Engine V2 架构**：新增 Temporal Reasoning 和 Thread Graph
 
 ### 新增功能
 - **Temporal Memory（时间记忆）**：
