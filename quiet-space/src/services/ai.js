@@ -47,18 +47,15 @@ const AIService = {
 
             // 如果启用记忆系统，添加系统提示词 + 记忆上下文
             if (enableMemory && typeof MemoryService !== 'undefined') {
-                // 加载记忆上下文
+                // 使用 Context Builder 构建工作记忆
                 const memoryContext = await this._loadMemoryContext(message);
 
                 // 构建系统提示词
                 let systemPrompt = this._companionPrompt;
 
-                if (memoryContext.memories.length > 0) {
-                    systemPrompt += `\n\n关于用户的重要记忆：\n${memoryContext.memories.map((m, i) => `${i + 1}. ${m.content}`).join('\n')}`;
-                }
-
-                if (memoryContext.recallSuggestions.length > 0) {
-                    systemPrompt += `\n\n可以自然引用的记忆：\n${memoryContext.recallSuggestions.map(s => `- ${s.suggestedPhrasing} (相关度: ${s.context})`).join('\n')}`;
+                // 注入工作记忆
+                if (memoryContext.memorySummary) {
+                    systemPrompt += `\n\n${memoryContext.memorySummary}`;
                 }
 
                 messages.push({ role: 'system', content: systemPrompt });
@@ -97,13 +94,6 @@ const AIService = {
                 if (textBlock) reply = textBlock.text;
             }
 
-            // 更新记忆引用
-            if (enableMemory && memoryContext?.recallSuggestions) {
-                for (const suggestion of memoryContext.recallSuggestions) {
-                    await MemoryService.referenceMemory(suggestion.memoryId);
-                }
-            }
-
             return reply;
         } catch (error) {
             console.error('AI Chat Error:', error);
@@ -112,24 +102,57 @@ const AIService = {
     },
 
     /**
-     * 加载记忆上下文
+     * 加载记忆上下文（使用 Context Builder）
      */
     async _loadMemoryContext(userMessage) {
         try {
-            // 获取活跃记忆
-            const memories = await MemoryService.getActiveMemories();
+            // 使用 Context Builder 构建工作记忆
+            const workingMemory = await Storage.buildContext(userMessage);
 
-            // 召回相关记忆
-            const recallResult = await MemoryService.recallMemories(userMessage, memories);
+            // 格式化为 Prompt 注入格式
+            const memorySummary = this._formatWorkingMemory(workingMemory);
 
             return {
-                memories: memories.slice(0, 10),  // 最多10条记忆
-                recallSuggestions: recallResult.recallSuggestions || []
+                workingMemory,
+                memorySummary
             };
         } catch (error) {
             console.error('Load Memory Context Error:', error);
-            return { memories: [], recallSuggestions: [] };
+            return { workingMemory: null, memorySummary: '' };
         }
+    },
+
+    /**
+     * 格式化工作记忆为 Prompt 注入格式
+     */
+    _formatWorkingMemory(wm) {
+        const parts = [];
+
+        if (wm.identity?.length > 0) {
+            parts.push(`关于用户：${wm.identity.map(i => i.content).join('；')}`);
+        }
+
+        if (wm.activeThreads?.length > 0) {
+            parts.push(`正在进行的事：${wm.activeThreads.map(t => t.content).join('；')}`);
+        }
+
+        if (wm.relevantPeople?.length > 0) {
+            parts.push(`提到的人物：${wm.relevantPeople.map(p => p.content).join('；')}`);
+        }
+
+        if (wm.emotionalContext?.length > 0) {
+            parts.push(`最近情绪：${wm.emotionalContext.map(e => e.content).join('；')}`);
+        }
+
+        if (wm.recentEpisodes?.length > 0) {
+            parts.push(`最近发生：${wm.recentEpisodes.map(e => `${e.date} ${e.content}`).join('；')}`);
+        }
+
+        if (wm.relevantPreferences?.length > 0) {
+            parts.push(`用户偏好：${wm.relevantPreferences.map(p => p.content).join('；')}`);
+        }
+
+        return parts.join('\n');
     },
 
     /**

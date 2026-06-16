@@ -267,6 +267,188 @@ const Storage = {
             });
     },
 
+    /**
+     * Context Builder - 构建工作记忆
+     * 这是整个记忆系统的"大脑入口"
+     */
+    async buildContext(userMessage) {
+        await this.init();
+        const allMemories = await DB.getAll('memories');
+        const now = new Date();
+        const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+        // 提取关键词用于相似度计算
+        const keywords = this._extractKeywords(userMessage);
+
+        // 1. Identity - 身份信息（永不衰减，必选）
+        const identity = allMemories
+            .filter(m => m.memoryCategory === 'identity')
+            .map(m => ({ content: m.content, source: 'identity' }));
+
+        // 2. Active Threads - 活跃线程
+        const activeThreads = allMemories
+            .filter(m => m.type === 'thread' && ['active', 'ongoing'].includes(m.status))
+            .sort((a, b) => this._calculateScore(b, keywords) - this._calculateScore(a, keywords))
+            .slice(0, 5)
+            .map(m => ({
+                content: m.content,
+                threadKey: m.threadKey,
+                status: m.status,
+                score: this._calculateScore(m, keywords)
+            }));
+
+        // 3. Relevant People - 相关人物
+        const relevantPeople = allMemories
+            .filter(m => m.memoryCategory === 'relationship')
+            .map(m => ({
+                content: m.content,
+                name: this._extractPersonName(m.content),
+                relevance: this._calculatePersonRelevance(m, userMessage)
+            }))
+            .sort((a, b) => b.relevance - a.relevance)
+            .slice(0, 3);
+
+        // 4. Emotional Context - 情绪上下文
+        const emotionalContext = allMemories
+            .filter(m => m.memoryCategory === 'emotion' && new Date(m.createdAt) >= sevenDaysAgo)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 3)
+            .map(m => ({
+                content: m.content,
+                emotion: m.tags?.[0] || 'unknown',
+                intensity: m.importance / 10
+            }));
+
+        // 5. Recent Episodes - 最近经历
+        const recentEpisodes = allMemories
+            .filter(m => m.memoryCategory === 'event' && new Date(m.createdAt) >= sevenDaysAgo)
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+            .slice(0, 3)
+            .map(m => ({
+                content: m.content,
+                date: m.temporal?.startDate || m.createdAt?.split('T')[0]
+            }));
+
+        // 6. Relevant Preferences - 相关偏好
+        const relevantPreferences = allMemories
+            .filter(m => m.memoryCategory === 'preference')
+            .map(m => ({
+                content: m.content,
+                relevance: this._calculatePreferenceRelevance(m, userMessage)
+            }))
+            .sort((a, b) => b.relevance - a.relevance)
+            .slice(0, 2);
+
+        return {
+            identity,
+            activeThreads,
+            relevantPeople,
+            emotionalContext,
+            recentEpisodes,
+            relevantPreferences
+        };
+    },
+
+    /**
+     * 提取关键词
+     */
+    _extractKeywords(text) {
+        const keywords = [];
+        const patterns = [
+            /项目/g, /开发/g, /学习/g, /考试/g, /工作/g,
+            /朋友/g, /家人/g, /室友/g, /同学/g,
+            /累/g, /开心/g, /难过/g, /焦虑/g, /压力/g
+        ];
+
+        patterns.forEach(pattern => {
+            const matches = text.match(pattern);
+            if (matches) {
+                keywords.push(...matches);
+            }
+        });
+
+        return [...new Set(keywords)];
+    },
+
+    /**
+     * 计算记忆相关性分数
+     */
+    _calculateScore(memory, keywords) {
+        const importance = memory.importance || 5;
+        const decayScore = memory.decayScore || 1;
+        const recency = this._calculateRecency(memory);
+        const similarity = this._calculateSimilarity(memory, keywords);
+        const referenceWeight = Math.min(1, (memory.referenceCount || 0) / 10);
+
+        return importance * 0.35 + recency * 0.25 + similarity * 0.25 + referenceWeight * 0.15;
+    },
+
+    /**
+     * 计算时效性分数
+     */
+    _calculateRecency(memory) {
+        if (!memory.createdAt) return 0.5;
+        const now = new Date();
+        const created = new Date(memory.createdAt);
+        const daysSince = (now - created) / (1000 * 60 * 60 * 24);
+
+        if (daysSince <= 1) return 1;
+        if (daysSince <= 7) return 0.8;
+        if (daysSince <= 30) return 0.6;
+        if (daysSince <= 90) return 0.4;
+        return 0.2;
+    },
+
+    /**
+     * 计算相似度分数
+     */
+    _calculateSimilarity(memory, keywords) {
+        if (!memory.tags || memory.tags.length === 0 || keywords.length === 0) {
+            return 0.3; // 默认值
+        }
+
+        const memoryTags = memory.tags.map(t => t.toLowerCase());
+        const matchCount = keywords.filter(k => memoryTags.includes(k.toLowerCase())).length;
+
+        return Math.min(1, matchCount / Math.max(keywords.length, 1));
+    },
+
+    /**
+     * 计算人物相关性
+     */
+    _calculatePersonRelevance(memory, userMessage) {
+        const name = this._extractPersonName(memory.content);
+        if (!name) return 0.5;
+
+        // 如果用户消息中提到这个人名
+        if (userMessage.includes(name)) return 1;
+
+        // 基于重要性
+        return (memory.importance || 5) / 10;
+    },
+
+    /**
+     * 提取人名
+     */
+    _extractPersonName(content) {
+        const match = content.match(/^([^是]+)是/);
+        return match ? match[1].trim() : null;
+    },
+
+    /**
+     * 计算偏好相关性
+     */
+    _calculatePreferenceRelevance(memory, userMessage) {
+        const content = memory.content.toLowerCase();
+
+        // 检查是否包含用户消息中的关键词
+        if (userMessage.includes('建议') || userMessage.includes('意见')) {
+            if (content.includes('不喜欢') || content.includes('讨厌')) return 1;
+        }
+
+        return (memory.importance || 5) / 10;
+    },
+
     // ========== 情绪时间线 ==========
     async getEmotionTimeline() {
         await this.init();
