@@ -58,35 +58,45 @@
    - 人格是可插拔的
    - 架构干净，扩展性强
 
-## Memory Engine V2 架构（待实现）
+## Memory Engine V2 架构（已实现）
 
 ```
-Raw Conversation（原始对话）
+User Message（用户输入）
+        ↓
+Memory Life Cycle Engine（记忆生命周期引擎）
+        ├── Context Builder（上下文构建）✅
+        ├── Thread State Engine（线程状态流转）✅
+        ├── Emotion Update Engine（情绪趋势更新）✅
+        └── Episodic Compression（情景记忆压缩）✅
+        ↓
+Working Memory（工作记忆）
+        ↓
+Companion Response（陪伴回复）
         ↓
 Memory Extraction（记忆提取）
         ↓
 Memory Consolidation（记忆合并）
-        ↓
-Temporal Reasoning（时间推理）← 新增
-        ↓
-Thread Graph（线程图谱）← 新增
-        ↓
-Context Builder（上下文构建）← 核心缺失
-        ↓
-Recall Ranking（召回排序）
-        ↓
-Companion Response（陪伴回复）
 ```
 
-**V2 新增模块：**
+**V2 核心变化：**
 
-| 模块 | 职责 | 核心能力 | 优先级 |
-|------|------|----------|--------|
-| Context Builder | 上下文构建 | 从记忆中筛选最相关的内容 | P0 |
-| Memory Retrieval Ranking | 召回排序 | 按相关性排序记忆 | P0 |
-| Temporal Reasoning | 时间推理 | 区分 2025考试 vs 2026考试 | P1 |
-| Thread Graph | 线程图谱 | 事件链演化（构思→开发→完成） | P1 |
-| Episode Memory | 情景记忆 | 具体经历（如"第一次完成记忆系统"） | P2 |
+| 之前 | 之后 |
+|------|------|
+| 被动存储（Storage） | 主动演化（Living Memory System） |
+| 手动调用模块 | 自动触发流水线 |
+| 数据库 | 自我演化的状态系统 |
+
+**V2 模块完成状态：**
+
+| 模块 | 状态 | 核心能力 |
+|------|------|----------|
+| Context Builder | ✅ 已完成 | 从记忆中筛选最相关的内容 |
+| Thread State Engine | ✅ 已完成 | 线程状态自动流转 |
+| Emotion Update Engine | ✅ 已完成 | 情绪趋势更新 |
+| Episodic Compression | ✅ 已完成 | 情景记忆压缩 |
+| Memory Retrieval Ranking | ✅ 已完成 | 按相关性排序记忆 |
+| Temporal Reasoning | ⏳ 待实现 | 区分不同时间的同类事件 |
+| Thread Graph | ⏳ 待实现 | 事件链演化 |
 
 **V2 问题清单：**
 

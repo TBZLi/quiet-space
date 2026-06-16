@@ -102,12 +102,19 @@ const AIService = {
     },
 
     /**
-     * 加载记忆上下文（使用 Context Builder）
+     * 加载记忆上下文（使用 Memory Life Cycle Engine）
      */
     async _loadMemoryContext(userMessage) {
         try {
-            // 使用 Context Builder 构建工作记忆
-            const workingMemory = await Storage.buildContext(userMessage);
+            // 使用 Memory Life Cycle Engine 构建工作记忆
+            let workingMemory;
+
+            if (typeof MemoryLifecycle !== 'undefined') {
+                workingMemory = await MemoryLifecycle.onUserMessage(userMessage);
+            } else {
+                // 降级到 Context Builder
+                workingMemory = await Storage.buildContext(userMessage);
+            }
 
             // 格式化为 Prompt 注入格式
             const memorySummary = this._formatWorkingMemory(workingMemory);
