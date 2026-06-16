@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间线 - Quiet Space</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --bg-panel: rgba(255, 255, 255, 0.04);
+            --accent-amber: #c9a96e;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000000;
+            color: var(--text-soft);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+        }
+
+        /* 视频背景 */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        /* 顶部导航 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, transparent 100%);
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .new-btn {
+            padding: 10px 24px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent-amber), #d4a574);
+            border: none;
+            color: #000000;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .new-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(201, 169, 110, 0.3);
+        }
+
+        /* 时间线滚动容器 */
+        .timeline-scroll {
+            height: 100vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            position: relative;
+            z-index: 10;
+            padding-top: 20vh;
+            padding-bottom: 20vh;
+        }
+
+        .timeline-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 单个项目 */
+        .timeline-item {
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+            opacity: 0.15;
+            transform: scale(0.9);
+            will-change: opacity, transform;
+        }
+
+        .item-content {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .item-content:hover {
+            transform: scale(1.02);
+        }
+
+        .item-date {
+            font-size: 13px;
+            color: #b0b0c0;
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .item-title {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .item-emotions {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .item-emotion {
+            padding: 5px 14px;
+            border-radius: 14px;
+            background: rgba(201, 169, 110, 0.15);
+            font-size: 12px;
+            color: var(--accent-amber);
+        }
+
+        .item-preview-text {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #b0b0c0;
+            max-height: 60px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .item-hint {
+            font-size: 12px;
+            color: var(--accent-amber);
+            opacity: 0.8;
+            margin-top: 16px;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            position: relative;
+            z-index: 10;
+        }
+
+        .empty-text {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .empty-hint {
+            font-size: 15px;
+            opacity: 0.6;
+        }
+
+        /* 右侧竖直指示器 */
+        .scroll-indicator {
+            position: fixed;
+            right: 24px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .scroll-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: none;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .scroll-dot:hover {
+            background: rgba(201, 169, 110, 0.6);
+            transform: scale(1.4);
+        }
+
+        .scroll-dot.active {
+            background: var(--accent-amber);
+            border-color: var(--accent-amber);
+            transform: scale(1.5);
+            box-shadow: 0 0 10px rgba(201, 169, 110, 0.6);
+        }
+
+        /* 页面过渡 */
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <button class="back-btn" onclick="goBack()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+        <div class="page-title" id="pageTitle">回忆</div>
+        <button class="new-btn" onclick="createNew()">新建</button>
+    </div>
+
+    <div class="timeline-scroll" id="timelineScroll">
+    </div>
+
+    <!-- 视频背景 -->
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="scroll-indicator" id="scrollIndicator">
+    </div>
+
+    <div class="page-transition" id="pageTransition"></div>
+
+    <script src="src/data/db.js"></script>
+    <script src="src/data/storage.js"></script>
+    <script src="src/data/videoStorage.js"></script>
+    <script>
+        let currentType = 'diary';
+        let items = [];
+        let currentIndex = 0;
+
+        async function loadTimeline() {
+            const params = new URLSearchParams(window.location.search);
+            currentType = params.get('type') || 'diary';
+
+            const titles = {
+                'diary': '回忆',
+                'chat': '倾诉',
+                'fragment': '碎碎念'
+            };
+            document.getElementById('pageTitle').textContent = titles[currentType] || '时间线';
+
+            items = await getItems();
+            renderTimeline();
+            setupScrollListener();
+        }
+
+        async function getItems() {
+            switch (currentType) {
+                case 'diary':
+                    return await Storage.getDiaries();
+                case 'chat':
+                    return await Storage.getChats();
+                case 'fragment':
+                    return await Storage.getFragments();
+                default:
+                    return [];
+            }
+        }
+
+        function renderTimeline() {
+            const container = document.getElementById('timelineScroll');
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-text">还没有内容</div>
+                        <div class="empty-hint">点击右上角"新建"开始</div>
+                    </div>
+                `;
+                return;
+            }
+
+            items.forEach((item, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'timeline-item';
+                itemDiv.dataset.index = index;
+
+                const date = new Date(item.date);
+                const dateStr = `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+
+                let title = item.title || '无题';
+                let content = '';
+
+                if (currentType === 'fragment') {
+                    title = item.text?.substring(0, 30) || '无题';
+                    content = item.text || '';
+                } else if (currentType === 'chat') {
+                    title = item.title || '新对话';
+                    content = item.messages?.map(m => m.content).join('\n\n') || '';
+                } else {
+                    content = item.content || '';
+                }
+
+                let emotionsHTML = '';
+                if (item.emotions && item.emotions.length > 0) {
+                    emotionsHTML = `
+                        <div class="item-emotions">
+                            ${item.emotions.map(e => `<span class="item-emotion">${e}</span>`).join('')}
+                        </div>
+                    `;
+                }
+
+                // 只显示预览内容（前100字）
+                let previewContent = content.substring(0, 100) + (content.length > 100 ? '...' : '');
+
+                itemDiv.innerHTML = `
+                    <div class="item-content" onclick="openItem(${index})">
+                        <div class="item-date">${dateStr}</div>
+                        <div class="item-title">${title}</div>
+                        ${emotionsHTML}
+                        <div class="item-preview-text">${previewContent}</div>
+                        <div class="item-hint">点击查看详情 →</div>
+                    </div>
+                `;
+
+                container.appendChild(itemDiv);
+            });
+
+            // 渲染底部指示器
+            renderScrollIndicator();
+        }
+
+        function renderScrollIndicator() {
+            const container = document.getElementById('scrollIndicator');
+            container.innerHTML = '';
+
+            items.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'scroll-dot';
+                dot.dataset.index = index;
+                if (index === 0) dot.classList.add('active');
+
+                // 点击跳转
+                dot.onclick = () => scrollToItem(index);
+
+                container.appendChild(dot);
+            });
+        }
+
+        function scrollToItem(index) {
+            const scrollContainer = document.getElementById('timelineScroll');
+            const items = document.querySelectorAll('.timeline-item');
+            if (items[index]) {
+                const itemTop = items[index].offsetTop;
+                scrollContainer.scrollTo({
+                    top: itemTop - 50,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        function setupScrollListener() {
+            const scrollContainer = document.getElementById('timelineScroll');
+            let ticking = false;
+
+            scrollContainer.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(() => {
+                        updateItemsOpacity();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+
+            // 初始计算
+            updateItemsOpacity();
+        }
+
+        function updateItemsOpacity() {
+            const scrollContainer = document.getElementById('timelineScroll');
+            const scrollTop = scrollContainer.scrollTop;
+            const viewportHeight = window.innerHeight;
+            const viewportCenter = scrollTop + viewportHeight / 2;
+
+            let closestIndex = 0;
+            let closestDistance = Infinity;
+
+            const items = document.querySelectorAll('.timeline-item');
+            for (let index = 0; index < items.length; index++) {
+                const item = items[index];
+                const rect = item.getBoundingClientRect();
+                const itemCenter = scrollTop + rect.top + rect.height / 2;
+
+                const distance = viewportCenter - itemCenter;
+                const absDistance = Math.abs(distance);
+
+                const maxDistance = viewportHeight * 0.6;
+                const ratio = Math.min(absDistance / maxDistance, 1);
+                const easedRatio = easeOutCubic(ratio);
+
+                const opacity = 1 - (easedRatio * 0.85);
+                const scale = 1 - (easedRatio * 0.1);
+
+                item.style.opacity = opacity;
+                item.style.transform = `scale(${scale})`;
+
+                if (absDistance < closestDistance) {
+                    closestDistance = absDistance;
+                    closestIndex = index;
+                }
+            }
+
+            if (closestIndex !== currentIndex) {
+                currentIndex = closestIndex;
+                updateScrollIndicator();
+            }
+        }
+
+        // 缓入缓出函数，让动画更丝滑
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        function updateScrollIndicator() {
+            document.querySelectorAll('.scroll-dot').forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentIndex);
+            });
+        }
+
+        async function openItem(index) {
+            if (index < 0 || index >= items.length) return;
+            const item = items[index];
+
+            if (currentType === 'diary') {
+                await Storage.setCurrentDiary(item);
+                window.location.href = 'diary.html';
+            } else if (currentType === 'chat') {
+                window.location.href = 'chat.html?continue=' + item.id;
+            } else if (currentType === 'fragment') {
+                window.location.href = 'fragment.html';
+            }
+        }
+
+        async function createNew() {
+            if (currentType === 'diary') {
+                await Storage.clearCurrentDiary();
+                window.location.href = 'diary.html';
+            } else if (currentType === 'chat') {
+                window.location.href = 'chat.html';
+            } else {
+                window.location.href = 'fragment.html';
+            }
+        }
+
+        function goBack() {
+            const transition = document.getElementById('pageTransition');
+            transition.classList.add('active');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 600);
+        }
+
+        // 加载自定义视频背景
+        async function loadVideoBackground() {
+            if (window.VideoStorage) {
+                const blob = await VideoStorage.getActiveVideo();
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const video = document.querySelector('.video-background');
+                    video.querySelector('source').src = url;
+                    const volume = await VideoStorage.getVideoVolume();
+                    video.volume = volume;
+                    video.load();
+                }
+            }
+        }
+
+        // 加载背景音频
+        async function loadBackgroundAudio() {
+            if (window.VideoStorage) {
+                const audioBlob = await VideoStorage.getAudioBlob();
+                if (audioBlob) {
+                    let audio = document.querySelector('.bg-audio');
+                    if (!audio) {
+                        audio = document.createElement('audio');
+                        audio.className = 'bg-audio';
+                        audio.loop = true;
+                        document.body.appendChild(audio);
+                    }
+                    audio.src = URL.createObjectURL(audioBlob);
+                    const volume = await VideoStorage.getAudioVolume();
+                    audio.volume = volume;
+                    audio.play().catch(() => {});
+                }
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            loadTimeline();
+            await loadVideoBackground();
+            await loadBackgroundAudio();
+        });
+
+        // 用户交互后取消静音
+        function enableAudioOnInteraction() {
+            const video = document.querySelector('.video-background');
+            const audio = document.querySelector('.bg-audio');
+            if (video) video.muted = false;
+            if (audio) audio.play().catch(() => {});
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('scroll', enableAudioOnInteraction);
+        }
+        document.addEventListener('click', enableAudioOnInteraction);
+        document.addEventListener('scroll', enableAudioOnInteraction);
+    </script>
+</body>
+</html>

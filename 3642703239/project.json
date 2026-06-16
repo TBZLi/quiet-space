@@ -1,0 +1,609 @@
+{
+	"contentrating" : "Everyone",
+	"description" : "The wallpaper features the character Shang Xinci from the novel Reverend Insanity. She appears as a maiden of sixteen, dressed in green, faithful to her depiction in the original work.\n\nThe mouse cursor sticker is a chibi version of Shang Xinci.\n\nBackground music includes 天若有情 - 池鱼 and 自然雨 - 雨声, 自然声带, 自然之声保护区.\n\nClicking on the character with the mouse randomly triggers one of ten voice lines, all taken from the Reverend Insanity audiobook (narrated by Lao Baoyu), matching the original novel exactly.\n\nAll animations, effects, sounds, and interactions can be customized in the wallpaper properties panel.",
+	"file" : "scene.json",
+	"general" : 
+	{
+		"properties" : 
+		{
+			"_1audiobarcolor1" : 
+			{
+				"condition" : "switch.value",
+				"index" : 45,
+				"order" : 145,
+				"text" : "音频条颜色1｜Audio bar Color 1",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"_2424hourformat" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 31,
+				"order" : 131,
+				"text" : "24小时格式｜24-Hour format",
+				"type" : "bool",
+				"value" : false
+			},
+			"_2audiobarcolor2" : 
+			{
+				"condition" : "switch.value",
+				"index" : 46,
+				"order" : 146,
+				"text" : "音频条颜色2｜Audio bar Color 2",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"audiobar" : 
+			{
+				"index" : 36,
+				"order" : 136,
+				"text" : "音频条｜Audio bar",
+				"type" : "group",
+				"value" : ""
+			},
+			"audiobarabove" : 
+			{
+				"condition" : "switch.value",
+				"index" : 43,
+				"order" : 143,
+				"text" : "音频条(上)｜Audio bar (Above)",
+				"type" : "bool",
+				"value" : true
+			},
+			"audiobarbelow" : 
+			{
+				"condition" : "switch.value",
+				"index" : 44,
+				"order" : 144,
+				"text" : "音频条(下)｜Audio bar (Below)",
+				"type" : "bool",
+				"value" : false
+			},
+			"audiobarcount" : 
+			{
+				"condition" : "switch.value",
+				"fraction" : true,
+				"index" : 41,
+				"max" : 200,
+				"min" : 1,
+				"order" : 141,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "音频条数｜Audio Bar Count",
+				"type" : "slider",
+				"value" : 10
+			},
+			"audiobarhuespeed" : 
+			{
+				"condition" : "switch.value",
+				"fraction" : true,
+				"index" : 47,
+				"max" : 1,
+				"min" : 0,
+				"order" : 147,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "音频条色相速度｜Audio bar hue speed",
+				"type" : "slider",
+				"value" : 0
+			},
+			"audiobarspacing" : 
+			{
+				"condition" : "switch.value",
+				"fraction" : true,
+				"index" : 42,
+				"max" : 1,
+				"min" : 0,
+				"order" : 142,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "音频条间距｜Audio Bar Spacing",
+				"type" : "slider",
+				"value" : 0.2
+			},
+			"backgroundmusic" : 
+			{
+				"fraction" : true,
+				"index" : 50,
+				"max" : 1,
+				"min" : 0,
+				"order" : 150,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "背景音乐｜Background music",
+				"type" : "slider",
+				"value" : 0.75
+			},
+			"blink" : 
+			{
+				"index" : 1,
+				"options" : 
+				[
+					{
+						"label" : "关闭｜Off",
+						"value" : "0"
+					},
+					{
+						"label" : "3/5帧(快)｜3/5 FPS",
+						"value" : "1"
+					},
+					{
+						"label" : "4/6帧(中)｜4/6 FPS",
+						"value" : "2"
+					},
+					{
+						"label" : "5/7帧(慢)｜5/7 FPS",
+						"value" : "3"
+					}
+				],
+				"order" : 101,
+				"text" : "眨眼｜Blink",
+				"type" : "combo",
+				"value" : "2"
+			},
+			"bodyundulation" : 
+			{
+				"index" : 7,
+				"order" : 107,
+				"text" : "身体起伏｜Body undulation",
+				"type" : "bool",
+				"value" : true
+			},
+			"charactervoice" : 
+			{
+				"fraction" : true,
+				"index" : 49,
+				"max" : 1,
+				"min" : 0,
+				"order" : 149,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "人物语音｜Character voice",
+				"type" : "slider",
+				"value" : 1
+			},
+			"charsettings" : 
+			{
+				"index" : 0,
+				"order" : 100,
+				"text" : "人物设置｜Char Settings",
+				"type" : "group",
+				"value" : ""
+			},
+			"clockdisplay" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 30,
+				"order" : 130,
+				"text" : "时钟显示｜Clock display",
+				"type" : "bool",
+				"value" : true
+			},
+			"componentcolor" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 29,
+				"order" : 129,
+				"text" : "组件颜色｜Component Color",
+				"type" : "color",
+				"value" : "1 1 1"
+			},
+			"componentdisplay" : 
+			{
+				"index" : 26,
+				"order" : 126,
+				"text" : "组件显示｜ Component display",
+				"type" : "bool",
+				"value" : true
+			},
+			"componentsize" : 
+			{
+				"condition" : "componentdisplay.value",
+				"fraction" : true,
+				"index" : 28,
+				"max" : 3,
+				"min" : 0,
+				"order" : 128,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "组件大小｜Component Size",
+				"type" : "slider",
+				"value" : 1
+			},
+			"componentsize1" : 
+			{
+				"condition" : "switch.value",
+				"fraction" : true,
+				"index" : 39,
+				"max" : 3,
+				"min" : 0,
+				"order" : 139,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "组件大小｜Component Size",
+				"type" : "slider",
+				"value" : 1
+			},
+			"datedisplay" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 32,
+				"order" : 132,
+				"text" : "日期显示｜Date display",
+				"type" : "bool",
+				"value" : true
+			},
+			"doubletapanddrag" : 
+			{
+				"condition" : "switch.value",
+				"index" : 38,
+				"order" : 138,
+				"text" : "双击拖拽｜Double tap and drag",
+				"type" : "bool",
+				"value" : false
+			},
+			"draggable" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 27,
+				"order" : 127,
+				"text" : "可拖拽｜Draggable",
+				"type" : "bool",
+				"value" : false
+			},
+			"eyemovement" : 
+			{
+				"index" : 2,
+				"order" : 102,
+				"text" : "眼动｜Eye movement",
+				"type" : "bool",
+				"value" : true
+			},
+			"eyespeed" : 
+			{
+				"condition" : "eyemovement.value",
+				"fraction" : true,
+				"index" : 3,
+				"max" : 2,
+				"min" : 0.01,
+				"order" : 103,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "眼动速度｜Eye Speed",
+				"type" : "slider",
+				"value" : 1
+			},
+			"flowinghair" : 
+			{
+				"index" : 4,
+				"order" : 104,
+				"text" : "飘发｜Flowing hair",
+				"type" : "bool",
+				"value" : true
+			},
+			"fluttervelocity" : 
+			{
+				"condition" : "flowinghair.value",
+				"fraction" : true,
+				"index" : 6,
+				"max" : 50,
+				"min" : 0,
+				"order" : 106,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "飘动速度｜Flutter velocity",
+				"type" : "slider",
+				"value" : 7
+			},
+			"flyinghairratio" : 
+			{
+				"condition" : "flowinghair.value",
+				"fraction" : true,
+				"index" : 5,
+				"max" : 1000,
+				"min" : 0.01,
+				"order" : 105,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "飘发比例｜Flying Hair Ratio",
+				"type" : "slider",
+				"value" : 15
+			},
+			"mousesticker" : 
+			{
+				"index" : 9,
+				"order" : 109,
+				"text" : "鼠标贴纸｜Mouse sticker",
+				"type" : "bool",
+				"value" : true
+			},
+			"mousetrack" : 
+			{
+				"index" : 11,
+				"order" : 111,
+				"text" : "鼠标轨迹｜Mouse track",
+				"type" : "bool",
+				"value" : true
+			},
+			"numberofparticles" : 
+			{
+				"condition" : "spotparticle.value",
+				"fraction" : true,
+				"index" : 18,
+				"max" : 2,
+				"min" : 0,
+				"order" : 118,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "粒子计数｜Particle counting",
+				"type" : "slider",
+				"value" : 0.8
+			},
+			"opacity" : 
+			{
+				"condition" : "switch.value",
+				"fraction" : true,
+				"index" : 40,
+				"max" : 1,
+				"min" : 0,
+				"order" : 140,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "不透明度｜Opacity",
+				"type" : "slider",
+				"value" : 0.7
+			},
+			"particlecolor" : 
+			{
+				"condition" : "spotparticle.value",
+				"index" : 15,
+				"order" : 115,
+				"text" : "粒子颜色｜Particle color",
+				"type" : "color",
+				"value" : "1 0.7058823529411765 0.4117647058823529"
+			},
+			"particleopacity" : 
+			{
+				"condition" : "spotparticle.value",
+				"fraction" : true,
+				"index" : 16,
+				"max" : 1,
+				"min" : 0.01,
+				"order" : 116,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "粒子不透明度｜Particle opacity",
+				"type" : "slider",
+				"value" : 0.85
+			},
+			"particlesize" : 
+			{
+				"condition" : "spotparticle.value",
+				"fraction" : true,
+				"index" : 19,
+				"max" : 5,
+				"min" : 0.01,
+				"order" : 119,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "粒子大小｜Particle size",
+				"type" : "slider",
+				"value" : 0.9
+			},
+			"particlevelocity" : 
+			{
+				"condition" : "spotparticle.value",
+				"fraction" : true,
+				"index" : 17,
+				"max" : 5,
+				"min" : 0,
+				"order" : 117,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "粒子速度｜Particle velocity",
+				"type" : "slider",
+				"value" : 0.7
+			},
+			"quantityofrain" : 
+			{
+				"condition" : "raineffect.value",
+				"fraction" : true,
+				"index" : 24,
+				"max" : 2,
+				"min" : 0,
+				"order" : 124,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "雨滴数量｜Quantity of rain",
+				"type" : "slider",
+				"value" : 0.8
+			},
+			"raindropopacity" : 
+			{
+				"condition" : "raineffect.value",
+				"fraction" : true,
+				"index" : 21,
+				"max" : 1,
+				"min" : 0.01,
+				"order" : 121,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "雨滴不透明度｜Raindrop opacity",
+				"type" : "slider",
+				"value" : 0.85
+			},
+			"raindropsize" : 
+			{
+				"condition" : "raineffect.value",
+				"fraction" : true,
+				"index" : 23,
+				"max" : 5,
+				"min" : 0,
+				"order" : 123,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "雨滴大小｜Raindrop size",
+				"type" : "slider",
+				"value" : 1
+			},
+			"raineffect" : 
+			{
+				"index" : 20,
+				"order" : 120,
+				"text" : "下雨效果｜Rain effect",
+				"type" : "bool",
+				"value" : true
+			},
+			"rainsound" : 
+			{
+				"fraction" : true,
+				"index" : 51,
+				"max" : 1,
+				"min" : 0,
+				"order" : 151,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "下雨声音｜Rain sound",
+				"type" : "slider",
+				"value" : 1
+			},
+			"rainspeed" : 
+			{
+				"condition" : "raineffect.value",
+				"fraction" : true,
+				"index" : 22,
+				"max" : 5,
+				"min" : 0,
+				"order" : 122,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "下雨速度｜Rain speed",
+				"type" : "slider",
+				"value" : 1
+			},
+			"scenesetup" : 
+			{
+				"index" : 8,
+				"order" : 108,
+				"text" : "场景设置｜Scene Setup",
+				"type" : "group",
+				"value" : ""
+			},
+			"schemecolor" : 
+			{
+				"index" : 0,
+				"order" : 100,
+				"text" : "ui_browse_properties_scheme_color",
+				"type" : "color",
+				"value" : "0 0.5019607843137255 0"
+			},
+			"soundsettings" : 
+			{
+				"index" : 48,
+				"order" : 148,
+				"text" : "声音设置｜Sound Settings",
+				"type" : "group",
+				"value" : ""
+			},
+			"spotparticle" : 
+			{
+				"index" : 14,
+				"order" : 114,
+				"text" : "光点粒子｜Spot particle",
+				"type" : "bool",
+				"value" : true
+			},
+			"stickersize" : 
+			{
+				"condition" : "mousesticker.value",
+				"fraction" : true,
+				"index" : 10,
+				"max" : 0.3,
+				"min" : 0,
+				"order" : 110,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "贴纸大小｜Sticker Size",
+				"type" : "slider",
+				"value" : 0.15
+			},
+			"switch" : 
+			{
+				"index" : 37,
+				"order" : 137,
+				"text" : "开关｜Switch",
+				"type" : "bool",
+				"value" : true
+			},
+			"textdisplay" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 34,
+				"order" : 134,
+				"text" : "文本显示｜Text display",
+				"type" : "bool",
+				"value" : true
+			},
+			"textediting" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 35,
+				"order" : 135,
+				"text" : "文本编辑｜Text editing",
+				"type" : "textinput",
+				"value" : "商心慈,伤心词"
+			},
+			"timemodule" : 
+			{
+				"index" : 25,
+				"order" : 125,
+				"text" : "时间组件｜Time module",
+				"type" : "group",
+				"value" : ""
+			},
+			"trackcolor" : 
+			{
+				"condition" : "mousetrack.value",
+				"index" : 12,
+				"order" : 112,
+				"text" : "轨迹颜色｜Track Color",
+				"type" : "color",
+				"value" : "0 0.5019607843137255 0"
+			},
+			"tracksize" : 
+			{
+				"condition" : "mousetrack.value",
+				"fraction" : true,
+				"index" : 13,
+				"max" : 5,
+				"min" : 0.01,
+				"order" : 113,
+				"precision" : 3,
+				"step" : 0.01,
+				"text" : "轨迹大小｜Track Size",
+				"type" : "slider",
+				"value" : 3
+			},
+			"weekdisplay" : 
+			{
+				"condition" : "componentdisplay.value",
+				"index" : 33,
+				"order" : 133,
+				"text" : "星期显示｜Week display",
+				"type" : "bool",
+				"value" : true
+			}
+		},
+		"supportsaudioprocessing" : true
+	},
+	"preview" : "preview.jpg",
+	"ratingsex" : "none",
+	"ratingviolence" : "none",
+	"tags" : [ "Anime" ],
+	"title" : "蛊真人-商心慈 3D｜Reverend Insanity-Shang Xin Ci 3D",
+	"type" : "scene",
+	"version" : 7,
+	"visibility" : "public",
+	"workshopid" : "3642703239",
+	"workshopurl" : "steam://url/CommunityFilePage/3642703239"
+}

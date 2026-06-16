@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiet Space</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --bg-panel: rgba(255, 255, 255, 0.03);
+            --accent-amber: #c9a96e;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000000;
+            color: var(--text-soft);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 视频背景 */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .content-layer {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 20;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+        }
+
+        .settings-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .settings-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--accent-amber);
+        }
+
+        .settings-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+            transition: stroke 0.3s ease;
+        }
+
+        .settings-btn:hover svg {
+            stroke: var(--accent-amber);
+        }
+
+        /* 三入口卡片 */
+        .entries-container {
+            display: flex;
+            gap: 32px;
+            margin-top: 40px;
+        }
+
+        .entry-card {
+            width: 220px;
+            height: 280px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .entry-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            border-color: rgba(201, 169, 110, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4),
+                        0 0 40px rgba(201, 169, 110, 0.1);
+        }
+
+        .entry-icon {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .entry-icon svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--accent-amber);
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .entry-title {
+            font-size: 20px;
+            font-weight: 400;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .entry-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* 底部标语 */
+        .tagline {
+            position: fixed;
+            bottom: 40px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-muted);
+            letter-spacing: 3px;
+        }
+
+        /* 页面过渡 */
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <div class="logo">Quiet Space</div>
+        <button class="settings-btn" onclick="openSettings()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <div class="content-layer">
+        <div class="entries-container">
+            <div class="entry-card" onclick="navigateTo('timeline.html?type=diary')">
+                <div class="entry-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                        <line x1="8" y1="7" x2="16" y2="7"></line>
+                        <line x1="8" y1="11" x2="14" y2="11"></line>
+                    </svg>
+                </div>
+                <div class="entry-title">回忆</div>
+                <div class="entry-desc">记录与浏览过去的点滴时光</div>
+            </div>
+
+            <div class="entry-card" onclick="navigateTo('timeline.html?type=chat')">
+                <div class="entry-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+                        <circle cx="12" cy="12" r="1" fill="currentColor"></circle>
+                        <circle cx="8" cy="12" r="1" fill="currentColor"></circle>
+                        <circle cx="16" cy="12" r="1" fill="currentColor"></circle>
+                    </svg>
+                </div>
+                <div class="entry-title">倾诉</div>
+                <div class="entry-desc">在深夜分享你心底最深的话语</div>
+            </div>
+
+            <div class="entry-card" onclick="navigateTo('timeline.html?type=fragment')">
+                <div class="entry-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                <div class="entry-title">碎碎念</div>
+                <div class="entry-desc">收集生活中的零散记忆与感悟</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tagline">深夜，与自己对话。</div>
+
+    <!-- 视频背景 -->
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="page-transition" id="pageTransition"></div>
+
+    <script src="src/data/videoStorage.js"></script>
+    <script>
+        // 页面导航
+        function navigateTo(page) {
+            const transition = document.getElementById('pageTransition');
+            transition.classList.add('active');
+            setTimeout(() => {
+                window.location.href = page;
+            }, 600);
+        }
+
+        function openSettings() {
+            navigateTo('settings.html');
+        }
+
+        // 加载自定义视频背景
+        async function loadVideoBackground() {
+            if (window.VideoStorage) {
+                const blob = await VideoStorage.getActiveVideo();
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const video = document.querySelector('.video-background');
+                    video.querySelector('source').src = url;
+                    const volume = await VideoStorage.getVideoVolume();
+                    video.volume = volume;
+                    video.load();
+                }
+            }
+        }
+
+        // 加载背景音频
+        async function loadBackgroundAudio() {
+            if (window.VideoStorage) {
+                const audioBlob = await VideoStorage.getAudioBlob();
+                if (audioBlob) {
+                    let audio = document.querySelector('.bg-audio');
+                    if (!audio) {
+                        audio = document.createElement('audio');
+                        audio.className = 'bg-audio';
+                        audio.loop = true;
+                        document.body.appendChild(audio);
+                    }
+                    audio.src = URL.createObjectURL(audioBlob);
+                    const volume = await VideoStorage.getAudioVolume();
+                    audio.volume = volume;
+                    audio.play().catch(() => {});
+                }
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            await loadVideoBackground();
+            await loadBackgroundAudio();
+        });
+
+        // 用户交互后取消静音
+        function enableAudioOnInteraction() {
+            const video = document.querySelector('.video-background');
+            const audio = document.querySelector('.bg-audio');
+            if (video) video.muted = false;
+            if (audio) audio.play().catch(() => {});
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('scroll', enableAudioOnInteraction);
+        }
+        document.addEventListener('click', enableAudioOnInteraction);
+        document.addEventListener('scroll', enableAudioOnInteraction);
+    </script>
+</body>
+</html>

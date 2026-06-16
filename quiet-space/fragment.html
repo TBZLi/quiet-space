@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>碎碎念 - Quiet Space</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --bg-panel: rgba(255, 255, 255, 0.04);
+            --accent-amber: #c9a96e;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-soft);
+            min-height: 100vh;
+        }
+
+        /* 视频背景 */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .fragment-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .organize-btn {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent-amber), #d4a574);
+            border: none;
+            color: var(--bg-deep);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .organize-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(201, 169, 110, 0.3);
+        }
+
+        .organize-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 输入区域 */
+        .input-section {
+            margin-bottom: 32px;
+        }
+
+        .input-box {
+            width: 100%;
+            background: var(--bg-panel);
+            /* backdrop-filter removed */
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 16px 20px;
+            font-size: 15px;
+            color: var(--text-soft);
+            outline: none;
+            resize: none;
+            min-height: 80px;
+            transition: all 0.3s ease;
+        }
+
+        .input-box:focus {
+            border-color: rgba(201, 169, 110, 0.3);
+        }
+
+        .input-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
+
+        .add-btn {
+            padding: 10px 24px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .add-btn:hover {
+            background: rgba(201, 169, 110, 0.1);
+            border-color: rgba(201, 169, 110, 0.3);
+            color: var(--accent-amber);
+        }
+
+        /* 碎碎念列表 */
+        .fragments-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .fragment-item {
+            background: var(--bg-panel);
+            /* backdrop-filter removed */
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .fragment-item:hover {
+            border-color: rgba(201, 169, 110, 0.2);
+        }
+
+        .fragment-item.selected {
+            border-color: var(--accent-amber);
+            background: rgba(201, 169, 110, 0.05);
+        }
+
+        .fragment-text {
+            font-size: 15px;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .fragment-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .fragment-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .fragment-checkbox {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid var(--border-subtle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .fragment-item.selected .fragment-checkbox {
+            background: var(--accent-amber);
+            border-color: var(--accent-amber);
+        }
+
+        .fragment-item.selected .fragment-checkbox::after {
+            content: '✓';
+            color: var(--bg-deep);
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .fragment-delete {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: none;
+            color: var(--text-muted);
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .fragment-item:hover .fragment-delete {
+            opacity: 1;
+        }
+
+        .fragment-delete:hover {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        /* 空状态 */
+        .empty-state {
+            text-align: center;
+            padding: 60px 0;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .empty-hint {
+            font-size: 13px;
+            opacity: 0.6;
+        }
+
+        /* 状态提示 */
+        .status-msg {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 20px;
+            background: var(--bg-panel);
+            /* backdrop-filter removed */
+            border: 1px solid var(--border-subtle);
+            font-size: 13px;
+            color: var(--accent-amber);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+
+        .status-msg.show {
+            opacity: 1;
+        }
+
+        /* 页面过渡 */
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body>
+    <div class="fragment-container">
+        <div class="top-bar">
+            <button class="back-btn" onclick="goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <div class="page-title">碎碎念</div>
+            <button class="organize-btn" id="organizeBtn" onclick="organizeFragments()" disabled>
+                整理成日记
+            </button>
+        </div>
+
+        <div class="input-section">
+            <textarea class="input-box" id="fragmentInput" placeholder="此刻在想什么..."></textarea>
+            <div class="input-actions">
+                <button class="add-btn" onclick="addFragment()">添加</button>
+            </div>
+        </div>
+
+        <div class="fragments-list" id="fragmentsList">
+            <!-- 碎碎念列表将动态插入 -->
+        </div>
+    </div>
+
+    <div class="status-msg" id="statusMsg"></div>
+
+    <!-- 视频背景 -->
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="page-transition" id="pageTransition"></div>
+
+    <script src="src/data/db.js"></script>
+    <script src="src/data/storage.js"></script>
+    <script src="src/data/videoStorage.js"></script>
+    <script>
+        let fragments = [];
+        let selectedFragments = new Set();
+
+        async function loadFragments() {
+            fragments = await Storage.getFragments();
+            renderFragments();
+        }
+
+        function renderFragments() {
+            const container = document.getElementById('fragmentsList');
+            container.innerHTML = '';
+
+            if (fragments.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">💭</div>
+                        <div class="empty-text">还没有碎碎念</div>
+                        <div class="empty-hint">在上方输入框记录你的想法</div>
+                    </div>
+                `;
+                return;
+            }
+
+            fragments.forEach((fragment, index) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `fragment-item ${selectedFragments.has(index) ? 'selected' : ''}`;
+                itemDiv.onclick = () => toggleSelect(index);
+
+                const date = new Date(fragment.date);
+                const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
+                itemDiv.innerHTML = `
+                    <div class="fragment-text">${fragment.text}</div>
+                    <div class="fragment-meta">
+                        <div class="fragment-time">${timeStr}</div>
+                        <div class="fragment-checkbox"></div>
+                    </div>
+                    <button class="fragment-delete" onclick="event.stopPropagation(); deleteFragment(${index})">×</button>
+                `;
+
+                container.appendChild(itemDiv);
+            });
+
+            updateOrganizeBtn();
+        }
+
+        async function addFragment() {
+            const input = document.getElementById('fragmentInput');
+            const text = input.value.trim();
+
+            if (!text) {
+                showStatus('请输入内容');
+                return;
+            }
+
+            const fragment = {
+                id: Date.now().toString(),
+                text: text,
+                date: new Date().toISOString()
+            };
+
+            await Storage.saveFragment(fragment);
+            fragments.unshift(fragment);
+
+            input.value = '';
+            renderFragments();
+            showStatus('已添加');
+        }
+
+        async function deleteFragment(index) {
+            const fragment = fragments[index];
+            await Storage.deleteFragment(fragment.id);
+            fragments.splice(index, 1);
+            selectedFragments.delete(index);
+            renderFragments();
+        }
+
+        function toggleSelect(index) {
+            if (selectedFragments.has(index)) {
+                selectedFragments.delete(index);
+            } else {
+                selectedFragments.add(index);
+            }
+            renderFragments();
+        }
+
+        function updateOrganizeBtn() {
+            const btn = document.getElementById('organizeBtn');
+            btn.disabled = selectedFragments.size < 2;
+            btn.textContent = selectedFragments.size > 0
+                ? `整理成日记 (${selectedFragments.size})`
+                : '整理成日记';
+        }
+
+        async function organizeFragments() {
+            if (selectedFragments.size < 2) {
+                showStatus('请至少选择2条碎碎念');
+                return;
+            }
+
+            const selected = Array.from(selectedFragments).map(i => fragments[i]);
+            const texts = selected.map(f => f.text).join('\n\n');
+
+            showStatus('正在整理...');
+
+            const settings = JSON.parse(localStorage.getItem('quietSpaceSettings') || '{}');
+
+            if (!settings.apiEndpoint || !settings.apiKey) {
+                showStatus('请先在设置中配置API');
+                return;
+            }
+
+            const prompt = `你是一个温柔的日记助手。请根据以下零碎想法，整理成一篇连贯的日记。
+
+要求：
+1. 生成一个简短的标题（不超过10个字）
+2. 把零碎想法串联成流畅的日记正文
+3. 提取2-3个情绪标签
+4. 保持用户原话的情感
+
+零碎想法：
+${selected.map((f, i) => `${i + 1}. ${f.text}`).join('\n')}
+
+请用JSON格式返回：
+{
+    "title": "日记标题",
+    "content": "日记正文",
+    "emotions": ["情绪1", "情绪2"]
+}`;
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        endpoint: settings.apiEndpoint,
+                        apiKey: settings.apiKey,
+                        model: settings.modelName || 'mimo-v2.5',
+                        messages: [{ role: 'user', content: prompt }],
+                        max_tokens: 500
+                    })
+                });
+
+                const data = await response.json();
+                const content = data.choices?.[0]?.message?.content || '';
+
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                let diary;
+
+                if (jsonMatch) {
+                    diary = JSON.parse(jsonMatch[0]);
+                } else {
+                    diary = {
+                        title: '碎碎念整理',
+                        content: content,
+                        emotions: ['平静']
+                    };
+                }
+
+                // 保存并跳转到日记编辑页
+                localStorage.setItem('currentDiary', JSON.stringify({
+                    ...diary,
+                    date: new Date().toISOString(),
+                    messages: selected.map(f => ({ role: 'user', content: f.text }))
+                }));
+
+                window.location.href = 'diary.html';
+
+            } catch (error) {
+                console.error('Organize error:', error);
+                showStatus('整理失败，请重试');
+            }
+        }
+
+        function showStatus(msg) {
+            const status = document.getElementById('statusMsg');
+            status.textContent = msg;
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 2000);
+        }
+
+        function goBack() {
+            // 保存输入框中未添加的内容
+            const input = document.getElementById('fragmentInput');
+            const text = input.value.trim();
+            if (text) {
+                const fragment = {
+                    id: Date.now().toString(),
+                    text: text,
+                    date: new Date().toISOString()
+                };
+                fragments.unshift(fragment);
+            }
+
+            // 保存所有碎碎念
+            localStorage.setItem('quietSpaceFragments', JSON.stringify(fragments));
+
+            const transition = document.getElementById('pageTransition');
+            transition.classList.add('active');
+            setTimeout(() => {
+                window.location.href = 'timeline.html?type=fragment';
+            }, 600);
+        }
+
+        // 加载自定义视频背景
+        async function loadVideoBackground() {
+            if (window.VideoStorage) {
+                const blob = await VideoStorage.getActiveVideo();
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const video = document.querySelector('.video-background');
+                    video.querySelector('source').src = url;
+                    const volume = await VideoStorage.getVideoVolume();
+                    video.volume = volume;
+                    video.load();
+                }
+            }
+        }
+
+        // 加载背景音频
+        async function loadBackgroundAudio() {
+            if (window.VideoStorage) {
+                const audioBlob = await VideoStorage.getAudioBlob();
+                if (audioBlob) {
+                    let audio = document.querySelector('.bg-audio');
+                    if (!audio) {
+                        audio = document.createElement('audio');
+                        audio.className = 'bg-audio';
+                        audio.loop = true;
+                        document.body.appendChild(audio);
+                    }
+                    audio.src = URL.createObjectURL(audioBlob);
+                    const volume = await VideoStorage.getAudioVolume();
+                    audio.volume = volume;
+                    audio.play().catch(() => {});
+                }
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            loadFragments();
+            await loadVideoBackground();
+            await loadBackgroundAudio();
+        });
+
+        // 用户交互后取消静音
+        function enableAudioOnInteraction() {
+            const video = document.querySelector('.video-background');
+            const audio = document.querySelector('.bg-audio');
+            if (video) video.muted = false;
+            if (audio) audio.play().catch(() => {});
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('scroll', enableAudioOnInteraction);
+        }
+        document.addEventListener('click', enableAudioOnInteraction);
+        document.addEventListener('scroll', enableAudioOnInteraction);
+    </script>
+</body>
+</html>

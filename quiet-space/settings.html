@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - Quiet Space</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --bg-panel: rgba(255, 255, 255, 0.04);
+            --accent-amber: #c9a96e;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-soft);
+            min-height: 100vh;
+            overflow-y: auto;
+        }
+
+        /* 视频背景 */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .settings-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 48px;
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .settings-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 16px;
+        }
+
+        .setting-card {
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .setting-item {
+            margin-bottom: 20px;
+        }
+
+        .setting-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            color: var(--text-soft);
+            margin-bottom: 8px;
+        }
+
+        .setting-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .setting-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: var(--text-soft);
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .setting-input:focus {
+            border-color: rgba(201, 169, 110, 0.4);
+        }
+
+        .setting-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-amber) 0%, #d4a574 100%);
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            color: var(--bg-deep);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 24px;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(201, 169, 110, 0.3);
+        }
+
+        .save-btn:active {
+            transform: translateY(0);
+        }
+
+        .status-msg {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--accent-amber);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-msg.show {
+            opacity: 1;
+        }
+
+        /* 页面过渡 */
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* 视频上传区域 */
+        .video-upload-area {
+            border: 2px dashed var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 16px;
+        }
+
+        .video-upload-area:hover {
+            border-color: var(--accent-amber);
+            background: rgba(201, 169, 110, 0.05);
+        }
+
+        .video-upload-area.dragover {
+            border-color: var(--accent-amber);
+            background: rgba(201, 169, 110, 0.1);
+        }
+
+        .video-upload-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .video-upload-text {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .video-upload-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        .video-preview {
+            margin-bottom: 16px;
+        }
+
+        .video-preview-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .video-preview-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .video-preview video {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .video-preview-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 8px 12px;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+            font-size: 12px;
+            color: var(--text-soft);
+        }
+
+        .video-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .video-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+
+        .video-btn-primary {
+            background: linear-gradient(135deg, var(--accent-amber), #d4a574);
+            color: var(--bg-deep);
+        }
+
+        .video-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(201, 169, 110, 0.3);
+        }
+
+        .video-btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+        }
+
+        .video-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-soft);
+        }
+
+        .video-btn-danger {
+            background: rgba(248, 113, 113, 0.1);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #f87171;
+        }
+
+        .video-btn-danger:hover {
+            background: rgba(248, 113, 113, 0.2);
+        }
+
+        .video-status {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        #videoFileInput {
+            display: none;
+        }
+
+        /* 视频列表 */
+        .video-list {
+            margin-top: 16px;
+        }
+
+        .video-list-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .video-list-empty {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 20px;
+            opacity: 0.6;
+        }
+
+        .video-list-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .video-list-item:hover {
+            border-color: rgba(201, 169, 110, 0.3);
+        }
+
+        .video-list-item.active {
+            border-color: var(--accent-amber);
+            background: rgba(201, 169, 110, 0.1);
+        }
+
+        .video-list-thumb {
+            width: 60px;
+            height: 40px;
+            border-radius: 6px;
+            overflow: hidden;
+            flex-shrink: 0;
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .video-list-thumb video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-list-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .video-list-name {
+            font-size: 13px;
+            color: var(--text-soft);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .video-list-size {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .video-list-active {
+            font-size: 11px;
+            color: var(--accent-amber);
+        }
+
+        .video-list-delete {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .video-list-delete:hover {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        /* 音量控制 */
+        .volume-control {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .volume-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .volume-slider-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .volume-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--border-subtle);
+            outline: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent-amber);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .volume-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .volume-value {
+            font-size: 12px;
+            color: var(--text-muted);
+            min-width: 36px;
+            text-align: right;
+        }
+
+        /* 音频区域 */
+        .audio-section {
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .audio-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .audio-current {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-subtle);
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+
+        .audio-icon {
+            font-size: 20px;
+        }
+
+        .audio-info {
+            flex: 1;
+        }
+
+        .audio-name {
+            font-size: 13px;
+            color: var(--text-soft);
+        }
+
+        .audio-size {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .audio-delete {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .audio-delete:hover {
+            background: rgba(248, 113, 113, 0.2);
+            color: #f87171;
+        }
+
+        .audio-upload-area {
+            border: 2px dashed var(--border-subtle);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .audio-upload-area:hover {
+            border-color: var(--accent-amber);
+            background: rgba(201, 169, 110, 0.05);
+        }
+
+        .audio-upload-icon {
+            font-size: 24px;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        .audio-upload-text {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .audio-upload-hint {
+            font-size: 11px;
+            color: var(--text-muted);
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        #audioFileInput {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <div class="top-bar">
+            <button class="back-btn" onclick="goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <div class="page-title">设置</div>
+            <div style="width: 44px;"></div>
+        </div>
+
+        <div class="settings-section">
+            <div class="section-title">AI 配置</div>
+            <div class="setting-card">
+                <div class="setting-item">
+                    <div class="setting-label">API Endpoint</div>
+                    <div class="setting-desc">MiMo API 地址（OpenAI格式）</div>
+                    <input type="text" class="setting-input" id="apiEndpoint" placeholder="https://token-plan-cn.xiaomimimo.com">
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">API Key</div>
+                    <div class="setting-desc">你的 API 密钥</div>
+                    <input type="password" class="setting-input" id="apiKey" placeholder="sk-...">
+                </div>
+                <div class="setting-item">
+                    <div class="setting-label">模型名称</div>
+                    <div class="setting-desc">使用的模型</div>
+                    <input type="text" class="setting-input" id="modelName" placeholder="mimo-7b">
+                </div>
+            </div>
+        </div>
+
+        <button class="save-btn" onclick="saveSettings()">保存配置</button>
+        <button class="save-btn" style="background: rgba(255,255,255,0.1); margin-top: 12px;" onclick="testConnection()">测试连接</button>
+        <div class="status-msg" id="statusMsg">配置已保存</div>
+
+        <div class="settings-section" style="margin-top: 48px;">
+            <div class="section-title">外观设置</div>
+            <div class="setting-card">
+                <div class="video-preview" id="videoPreview">
+                    <div class="video-preview-label">当前背景</div>
+                    <div class="video-preview-container">
+                        <video id="previewVideo" muted loop playsinline></video>
+                        <div class="video-preview-info" id="previewInfo">默认：夏日西瓜</div>
+                    </div>
+                </div>
+
+                <div class="video-upload-area" id="uploadArea">
+                    <div class="video-upload-icon">🎬</div>
+                    <div class="video-upload-text">点击或拖拽上传视频</div>
+                    <div class="video-upload-hint">支持 MP4 / WebM / OGG，建议小于 200MB</div>
+                </div>
+                <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/ogg" multiple>
+
+                <div class="video-actions">
+                    <button class="video-btn video-btn-secondary" onclick="restoreDefaultVideo()">恢复默认</button>
+                </div>
+
+                <div class="video-list" id="videoList">
+                    <div class="video-list-label">视频列表（点击切换）</div>
+                    <div id="videoListContent"></div>
+                </div>
+
+                <div class="volume-control">
+                    <div class="volume-label">视频音量</div>
+                    <div class="volume-slider-wrapper">
+                        <span style="font-size: 16px;">🔇</span>
+                        <input type="range" class="volume-slider" id="videoVolumeSlider" min="0" max="100" value="50">
+                        <span style="font-size: 16px;">🔊</span>
+                        <span class="volume-value" id="videoVolumeValue">50%</span>
+                    </div>
+                </div>
+
+                <div class="volume-control">
+                    <div class="volume-label">背景音频音量</div>
+                    <div class="volume-slider-wrapper">
+                        <span style="font-size: 16px;">🔇</span>
+                        <input type="range" class="volume-slider" id="audioVolumeSlider" min="0" max="100" value="50">
+                        <span style="font-size: 16px;">🔊</span>
+                        <span class="volume-value" id="audioVolumeValue">50%</span>
+                    </div>
+                </div>
+
+                <div class="audio-section">
+                    <div class="audio-label">背景音频（可选，无缝循环）</div>
+                    <div id="audioCurrentSection"></div>
+                    <div class="audio-upload-area" id="audioUploadArea">
+                        <div class="audio-upload-icon">🎵</div>
+                        <div class="audio-upload-text">点击上传音频</div>
+                        <div class="audio-upload-hint">支持 MP3 / WAV / OGG，建议小于 20MB</div>
+                    </div>
+                    <input type="file" id="audioFileInput" accept="audio/mp3,audio/wav,audio/ogg,audio/mpeg">
+                </div>
+
+                <div class="video-status" id="videoStatus"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视频背景 -->
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="page-transition" id="pageTransition"></div>
+
+    <script src="src/data/db.js"></script>
+    <script src="src/data/storage.js"></script>
+    <script src="src/data/videoStorage.js"></script>
+    <script>
+        // 加载已保存的配置
+        async function loadSettings() {
+            const settings = await Storage.getSettings();
+            document.getElementById('apiEndpoint').value = settings.apiEndpoint || '';
+            document.getElementById('apiKey').value = settings.apiKey || '';
+            document.getElementById('modelName').value = settings.modelName || '';
+        }
+
+        async function saveSettings() {
+            const settings = {
+                apiEndpoint: document.getElementById('apiEndpoint').value,
+                apiKey: document.getElementById('apiKey').value,
+                modelName: document.getElementById('modelName').value
+            };
+            await Storage.saveSettings(settings);
+
+            const msg = document.getElementById('statusMsg');
+            msg.classList.add('show');
+            setTimeout(() => msg.classList.remove('show'), 2000);
+        }
+
+        function goBack() {
+            const transition = document.getElementById('pageTransition');
+            transition.classList.add('active');
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 600);
+        }
+
+        async function testConnection() {
+            const settings = {
+                apiEndpoint: document.getElementById('apiEndpoint').value,
+                apiKey: document.getElementById('apiKey').value,
+                modelName: document.getElementById('modelName').value
+            };
+
+            if (!settings.apiEndpoint || !settings.apiKey) {
+                showStatus('请先填写API地址和Key', false);
+                return;
+            }
+
+            showStatus('测试连接中...', true);
+
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        endpoint: settings.apiEndpoint,
+                        apiKey: settings.apiKey,
+                        model: settings.modelName || 'mimo-7b',
+                        messages: [
+                            { role: 'user', content: '你好' }
+                        ],
+                        max_tokens: 50
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    showStatus('连接成功！', true);
+                } else {
+                    showStatus(`连接失败: ${response.status}`, false);
+                }
+            } catch (error) {
+                showStatus(`连接失败: ${error.message}`, false);
+            }
+        }
+
+        function showStatus(msg, success) {
+            const status = document.getElementById('statusMsg');
+            status.textContent = msg;
+            status.style.color = success ? '#4ade80' : '#f87171';
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 3000);
+        }
+
+        // 视频上传相关功能
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('videoFileInput');
+        const previewVideo = document.getElementById('previewVideo');
+        const previewInfo = document.getElementById('previewInfo');
+        const videoStatus = document.getElementById('videoStatus');
+        const videoListContent = document.getElementById('videoListContent');
+
+        // 点击上传区域
+        uploadArea.addEventListener('click', () => fileInput.click());
+
+        // 拖拽上传
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) uploadVideos(files);
+        });
+
+        // 文件选择
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files.length > 0) uploadVideos(files);
+        });
+
+        // 上传多个视频
+        async function uploadVideos(files) {
+            const validTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+            let successCount = 0;
+
+            for (const file of files) {
+                if (!validTypes.includes(file.type)) {
+                    showVideoStatus(`"${file.name}" 格式不支持`, false);
+                    continue;
+                }
+
+                if (file.size > 200 * 1024 * 1024) {
+                    showVideoStatus(`"${file.name}" 文件过大，建议小于 200MB`, false);
+                    continue;
+                }
+
+                try {
+                    showVideoStatus('检查中...', true);
+                    const result = await VideoStorage.addVideo(file);
+
+                    if (result.status === 'duplicate_name') {
+                        showVideoStatus(`"${file.name}" 已存在，跳过`, false);
+                        continue;
+                    }
+
+                    if (result.status === 'duplicate_size') {
+                        const existingSize = VideoStorage.formatSize(result.existing.size);
+                        const confirmed = confirm(
+                            `文件 "${file.name}" (${VideoStorage.formatSize(file.size)})\n` +
+                            `与已存在的 "${result.existing.name}" (${existingSize}) 大小相同。\n\n` +
+                            `可能是同一个视频，确定要继续上传吗？`
+                        );
+                        if (!confirmed) {
+                            showVideoStatus('已取消', true);
+                            continue;
+                        }
+                    }
+
+                    // 第一个上传的视频自动选中
+                    if (successCount === 0) {
+                        await VideoStorage.setActiveVideoId(result.video.id);
+                    }
+                    successCount++;
+                } catch (error) {
+                    console.error('Save video error:', error);
+                }
+            }
+
+            if (successCount > 0) {
+                showVideoStatus(`已保存 ${successCount} 个视频`, true);
+            }
+
+            await refreshVideoList();
+            await updateVideoPreview();
+        }
+
+        // 恢复默认视频
+        async function restoreDefaultVideo() {
+            try {
+                await VideoStorage.setActiveVideoId(null);
+                previewVideo.src = '';
+                previewInfo.textContent = '默认：夏日西瓜';
+
+                // 恢复页面背景
+                const bgVideo = document.querySelector('.video-background');
+                bgVideo.querySelector('source').src = 'backgrounds/summer-watermelon.mp4';
+                bgVideo.load();
+
+                await refreshVideoList();
+                showVideoStatus('已恢复默认背景', true);
+            } catch (error) {
+                console.error('Restore default error:', error);
+                showVideoStatus('恢复失败，请重试', false);
+            }
+        }
+
+        // 选择视频
+        async function selectVideo(id) {
+            await VideoStorage.setActiveVideoId(id);
+            await updateVideoPreview();
+            await refreshVideoList();
+        }
+
+        // 删除视频
+        async function deleteVideo(id, event) {
+            event.stopPropagation();
+            if (!confirm('确定删除这个视频吗？')) return;
+
+            try {
+                await VideoStorage.deleteVideo(id);
+                await refreshVideoList();
+                await updateVideoPreview();
+                showVideoStatus('已删除', true);
+            } catch (error) {
+                console.error('Delete video error:', error);
+                showVideoStatus('删除失败', false);
+            }
+        }
+
+        // 刷新视频列表
+        async function refreshVideoList() {
+            const videos = await VideoStorage.getAllVideos();
+            const activeId = await VideoStorage.getActiveVideoId();
+
+            if (videos.length === 0) {
+                videoListContent.innerHTML = '<div class="video-list-empty">还没有上传视频</div>';
+                return;
+            }
+
+            let html = '';
+            for (const video of videos) {
+                const isActive = video.id === activeId;
+                const sizeStr = VideoStorage.formatSize(video.size);
+                html += `
+                    <div class="video-list-item ${isActive ? 'active' : ''}" onclick="selectVideo('${video.id}')">
+                        <div class="video-list-thumb">
+                            <video muted></video>
+                        </div>
+                        <div class="video-list-info">
+                            <div class="video-list-name">${video.name}</div>
+                            <div class="video-list-size">${sizeStr}</div>
+                            ${isActive ? '<div class="video-list-active">● 使用中</div>' : ''}
+                        </div>
+                        <button class="video-list-delete" onclick="deleteVideo('${video.id}', event)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            }
+
+            videoListContent.innerHTML = html;
+
+            // 加载缩略图
+            const items = videoListContent.querySelectorAll('.video-list-item');
+            for (const item of items) {
+                const id = item.onclick.toString().match(/selectVideo\('(.+?)'\)/)?.[1];
+                if (id) {
+                    const blob = await VideoStorage.getVideoBlob(id);
+                    if (blob) {
+                        const thumbVideo = item.querySelector('video');
+                        thumbVideo.src = URL.createObjectURL(blob);
+                    }
+                }
+            }
+        }
+
+        // 更新视频预览
+        async function updateVideoPreview() {
+            try {
+                const activeId = await VideoStorage.getActiveVideoId();
+                if (activeId) {
+                    const blob = await VideoStorage.getVideoBlob(activeId);
+                    const videos = await VideoStorage.getAllVideos();
+                    const videoInfo = videos.find(v => v.id === activeId);
+
+                    if (blob && videoInfo) {
+                        const url = URL.createObjectURL(blob);
+                        previewVideo.src = url;
+                        previewVideo.play();
+
+                        const sizeStr = VideoStorage.formatSize(videoInfo.size);
+                        previewInfo.textContent = `${videoInfo.name} (${sizeStr})`;
+
+                        // 更新页面背景
+                        const bgVideo = document.querySelector('.video-background');
+                        bgVideo.querySelector('source').src = url;
+                        bgVideo.load();
+                        return;
+                    }
+                }
+
+                // 使用默认视频
+                previewVideo.src = '';
+                previewInfo.textContent = '默认：夏日西瓜';
+
+                const bgVideo = document.querySelector('.video-background');
+                bgVideo.querySelector('source').src = 'backgrounds/summer-watermelon.mp4';
+                bgVideo.load();
+            } catch (error) {
+                console.error('Update preview error:', error);
+            }
+        }
+
+        // 显示视频状态
+        function showVideoStatus(msg, success) {
+            videoStatus.textContent = msg;
+            videoStatus.style.color = success ? '#4ade80' : '#f87171';
+            setTimeout(() => { videoStatus.textContent = ''; }, 3000);
+        }
+
+        // 页面加载时初始化
+        window.addEventListener('load', async () => {
+            loadSettings();
+            await refreshVideoList();
+            await updateVideoPreview();
+            await loadVolumeSettings();
+            await loadAudioInfo();
+        });
+
+        // ===== 音量控制 =====
+        const videoVolumeSlider = document.getElementById('videoVolumeSlider');
+        const videoVolumeValue = document.getElementById('videoVolumeValue');
+        const audioVolumeSlider = document.getElementById('audioVolumeSlider');
+        const audioVolumeValue = document.getElementById('audioVolumeValue');
+
+        videoVolumeSlider.addEventListener('input', async (e) => {
+            const volume = e.target.value / 100;
+            videoVolumeValue.textContent = e.target.value + '%';
+            await VideoStorage.setVideoVolume(volume);
+            document.querySelector('.video-background').volume = volume;
+        });
+
+        audioVolumeSlider.addEventListener('input', async (e) => {
+            const volume = e.target.value / 100;
+            audioVolumeValue.textContent = e.target.value + '%';
+            await VideoStorage.setAudioVolume(volume);
+            const audio = document.querySelector('.bg-audio');
+            if (audio) audio.volume = volume;
+        });
+
+        async function loadVolumeSettings() {
+            const videoVolume = await VideoStorage.getVideoVolume();
+            const audioVolume = await VideoStorage.getAudioVolume();
+            videoVolumeSlider.value = Math.round(videoVolume * 100);
+            videoVolumeValue.textContent = Math.round(videoVolume * 100) + '%';
+            audioVolumeSlider.value = Math.round(audioVolume * 100);
+            audioVolumeValue.textContent = Math.round(audioVolume * 100) + '%';
+        }
+
+        // ===== 音频上传 =====
+        const audioUploadArea = document.getElementById('audioUploadArea');
+        const audioFileInput = document.getElementById('audioFileInput');
+        const audioCurrentSection = document.getElementById('audioCurrentSection');
+
+        audioUploadArea.addEventListener('click', () => audioFileInput.click());
+
+        audioFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) await uploadAudio(file);
+        });
+
+        async function uploadAudio(file) {
+            const validTypes = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'];
+            if (!validTypes.includes(file.type)) {
+                showVideoStatus('不支持的音频格式', false);
+                return;
+            }
+
+            if (file.size > 20 * 1024 * 1024) {
+                showVideoStatus('音频文件过大，建议小于 20MB', false);
+                return;
+            }
+
+            try {
+                showVideoStatus('保存中...', true);
+                await VideoStorage.saveAudio(file);
+                await loadAudioInfo();
+                showVideoStatus('音频已保存', true);
+            } catch (error) {
+                console.error('Save audio error:', error);
+                showVideoStatus('保存失败', false);
+            }
+        }
+
+        async function deleteAudio() {
+            if (!confirm('确定删除背景音频吗？')) return;
+            try {
+                await VideoStorage.deleteAudio();
+                await loadAudioInfo();
+                showVideoStatus('音频已删除', true);
+            } catch (error) {
+                console.error('Delete audio error:', error);
+            }
+        }
+
+        async function loadAudioInfo() {
+            const info = await VideoStorage.getAudioInfo();
+            if (info) {
+                const sizeStr = VideoStorage.formatSize(info.size);
+                audioCurrentSection.innerHTML = `
+                    <div class="audio-current">
+                        <div class="audio-icon">🎵</div>
+                        <div class="audio-info">
+                            <div class="audio-name">${info.name}</div>
+                            <div class="audio-size">${sizeStr}</div>
+                        </div>
+                        <button class="audio-delete" onclick="deleteAudio()">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                `;
+            } else {
+                audioCurrentSection.innerHTML = '';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>倾诉 - Quiet Space</title>
+    <script src="src/data/db.js"></script>
+    <script src="src/data/storage.js"></script>
+    <script src="src/data/videoStorage.js"></script>
+    <script src="src/services/memoryService.js"></script>
+    <script src="src/services/ai.js"></script>
+    <script src="src/ui/chatUI.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --bg-panel: rgba(255, 255, 255, 0.04);
+            --accent-amber: #c9a96e;
+            --accent-blue: #4a6fa5;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+            --border-subtle: rgba(255, 255, 255, 0.06);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000000;
+            color: var(--text-soft);
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* 视频背景 */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .chat-layer {
+            position: relative;
+            z-index: 10;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            opacity: 0;
+            animation: fadeSlideDown 0.8s ease 0.2s forwards;
+        }
+
+        @keyframes fadeSlideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(201, 169, 110, 0.3);
+            transform: translateX(-3px);
+        }
+
+        .back-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+            transition: stroke 0.3s ease;
+        }
+
+        .back-btn:hover svg {
+            stroke: var(--accent-amber);
+        }
+
+        .end-chat-btn {
+            padding: 10px 20px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .end-chat-btn:hover {
+            background: rgba(201, 169, 110, 0.1);
+            border-color: rgba(201, 169, 110, 0.3);
+            color: var(--accent-amber);
+        }
+
+        /* 消息区域 */
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 760px;
+            margin: 0 auto;
+            width: 100%;
+            scroll-behavior: smooth;
+        }
+
+        .messages-container::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 75%;
+            opacity: 0;
+            animation: messageAppear 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+
+        @keyframes messageAppear {
+            from {
+                opacity: 0;
+                transform: translateY(15px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+        }
+
+        .message.ai {
+            align-self: flex-start;
+        }
+
+        .message-bubble {
+            padding: 16px 20px;
+            font-size: 15px;
+            line-height: 1.7;
+            position: relative;
+        }
+
+        .message.user .message-bubble {
+            background: rgba(201, 169, 110, 0.12);
+            border: 1px solid rgba(201, 169, 110, 0.15);
+            border-radius: 20px 20px 6px 20px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .message.ai .message-bubble {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px 20px 20px 6px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 8px;
+            padding: 0 6px;
+            opacity: 0.6;
+        }
+
+        .message.user .message-time {
+            text-align: right;
+        }
+
+        /* 思考中动画 */
+        .thinking-indicator {
+            display: flex;
+            gap: 6px;
+            padding: 18px 22px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px 20px 20px 6px;
+            width: fit-content;
+        }
+
+        .thinking-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            animation: thinking 1.4s infinite ease-in-out;
+        }
+
+        .thinking-dot:nth-child(2) { animation-delay: 0.2s; }
+        .thinking-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes thinking {
+            0%, 80%, 100% {
+                transform: scale(0.5);
+                opacity: 0.3;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* 输入区域 */
+        .input-area {
+            padding: 16px 32px 32px;
+            max-width: 760px;
+            margin: 0 auto;
+            width: 100%;
+            opacity: 0;
+            animation: fadeSlideUp 0.8s ease 0.4s forwards;
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 14px;
+            align-items: flex-end;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            border-radius: 28px;
+            padding: 8px 8px 8px 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .input-wrapper:focus-within {
+            border-color: rgba(201, 169, 110, 0.25);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-box {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            font-size: 15px;
+            color: var(--text-soft);
+            outline: none;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+
+        .input-box::placeholder {
+            color: var(--text-muted);
+            opacity: 0.7;
+        }
+
+        .send-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-amber) 0%, #d4a574 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex-shrink: 0;
+        }
+
+        .send-btn:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 24px rgba(201, 169, 110, 0.35);
+        }
+
+        .send-btn:active {
+            transform: scale(0.95);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: #000000;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        /* 空状态提示 */
+        .empty-hint {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-muted);
+            opacity: 0;
+            animation: breathe 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes breathe {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+
+        .empty-hint-text {
+            font-size: 16px;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+
+        .empty-hint-sub {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        /* 页面过渡 */
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-layer">
+        <div class="top-bar">
+            <button class="back-btn" onclick="goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <button class="end-chat-btn" id="endChatBtn" onclick="endChat()">结束对话</button>
+        </div>
+
+        <div class="messages-container" id="messagesContainer">
+            <div class="empty-hint" id="emptyHint">
+                <div class="empty-hint-text">想聊点什么...</div>
+                <div class="empty-hint-sub">我在这里，慢慢说</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea class="input-box" id="messageInput" placeholder="说点什么吧..." rows="1"></textarea>
+                <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视频背景 -->
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="page-transition" id="pageTransition"></div>
+
+    <script>
+        // 聊天功能
+        let isGenerating = false;
+        let currentChatId = null;
+
+        function loadChatHistory() {
+            const params = new URLSearchParams(window.location.search);
+            const chatId = params.get('continue');
+
+            if (chatId) {
+                const chat = Storage.getChat(chatId);
+                if (chat) {
+                    currentChatId = chatId;
+                    ChatUI.loadHistory(chat.messages);
+                }
+            }
+        }
+
+        async function sendMessage() {
+            const text = ChatUI.input.value.trim();
+            if (!text || isGenerating) return;
+
+            ChatUI.addMessage(text, 'user');
+            ChatUI.input.value = '';
+            ChatUI.input.style.height = 'auto';
+
+            isGenerating = true;
+            ChatUI.sendBtn.disabled = true;
+            ChatUI.showThinking();
+
+            // 获取历史消息
+            const history = ChatUI.getMessages().slice(0, -1); // 排除刚发送的消息
+
+            setTimeout(async () => {
+                const aiResponse = await AIService.chat(text, history);
+                ChatUI.hideThinking();
+                ChatUI.addMessage(aiResponse, 'ai');
+                isGenerating = false;
+                ChatUI.sendBtn.disabled = false;
+                ChatUI.input.focus();
+            }, 800);
+        }
+
+        async function endChat() {
+            const messages = ChatUI.getMessages();
+            if (messages.length === 0) {
+                goBack();
+                return;
+            }
+
+            saveChatHistory();
+
+            // 触发记忆提取
+            if (typeof AIService !== 'undefined' && typeof AIService.endConversation === 'function') {
+                await AIService.endConversation(messages);
+            }
+
+            ChatUI.showModal(
+                '要把今天的对话整理成日记吗？',
+                'AI会帮你把对话整理成一篇日记',
+                [
+                    { text: '好的', primary: true, onClick: () => generateDiary(true) },
+                    { text: '不用了', primary: false, onClick: () => generateDiary(false) }
+                ]
+            );
+
+            document.getElementById('endChatBtn').style.display = 'none';
+        }
+
+        function saveChatHistory() {
+            const messages = ChatUI.getMessages();
+            if (messages.length === 0) return;
+
+            const chat = {
+                id: currentChatId || Date.now().toString(),
+                title: messages[0]?.content?.substring(0, 20) || '新对话',
+                messages: messages,
+                date: new Date().toISOString()
+            };
+
+            Storage.saveChat(chat);
+            currentChatId = chat.id;
+        }
+
+        async function generateDiary(save) {
+            if (!save) {
+                setTimeout(() => {
+                    window.location.href = 'timeline.html?type=chat';
+                }, 500);
+                return;
+            }
+
+            ChatUI.showThinking();
+            const messages = ChatUI.getMessages();
+            const diary = await AIService.generateDiary(messages);
+            ChatUI.hideThinking();
+
+            Storage.setCurrentDiary({
+                title: diary.title,
+                content: diary.content,
+                emotions: diary.emotions,
+                date: new Date().toISOString(),
+                messages: messages
+            });
+
+            window.location.href = 'diary.html';
+        }
+
+        function goBack() {
+            const messages = ChatUI.getMessages();
+            if (messages.length > 0) {
+                saveChatHistory();
+            }
+            const transition = document.getElementById('pageTransition');
+            transition.classList.add('active');
+            setTimeout(() => {
+                window.location.href = 'timeline.html?type=chat';
+            }, 600);
+        }
+
+        // 加载自定义视频背景
+        async function loadVideoBackground() {
+            if (window.VideoStorage) {
+                const blob = await VideoStorage.getActiveVideo();
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const video = document.querySelector('.video-background');
+                    video.querySelector('source').src = url;
+                    const volume = await VideoStorage.getVideoVolume();
+                    video.volume = volume;
+                    video.load();
+                }
+            }
+        }
+
+        // 加载背景音频
+        async function loadBackgroundAudio() {
+            if (window.VideoStorage) {
+                const audioBlob = await VideoStorage.getAudioBlob();
+                if (audioBlob) {
+                    let audio = document.querySelector('.bg-audio');
+                    if (!audio) {
+                        audio = document.createElement('audio');
+                        audio.className = 'bg-audio';
+                        audio.loop = true;
+                        document.body.appendChild(audio);
+                    }
+                    audio.src = URL.createObjectURL(audioBlob);
+                    const volume = await VideoStorage.getAudioVolume();
+                    audio.volume = volume;
+                    audio.play().catch(() => {});
+                }
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            ChatUI.init();
+            ChatUI.onSend = sendMessage;
+            loadChatHistory();
+            ChatUI.input.focus();
+            await loadVideoBackground();
+            await loadBackgroundAudio();
+        });
+
+        // 用户交互后取消静音
+        function enableAudioOnInteraction() {
+            const video = document.querySelector('.video-background');
+            const audio = document.querySelector('.bg-audio');
+            if (video) video.muted = false;
+            if (audio) audio.play().catch(() => {});
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('scroll', enableAudioOnInteraction);
+        }
+        document.addEventListener('click', enableAudioOnInteraction);
+        document.addEventListener('scroll', enableAudioOnInteraction);
+    </script>
+</body>
+</html>

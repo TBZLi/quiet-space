@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日记 - Quiet Space</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --bg-panel: rgba(255, 255, 255, 0.04);
+            --accent-amber: #c9a96e;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+            --border-subtle: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #000000;
+            color: var(--text-soft);
+            min-height: 100vh;
+        }
+
+        /* 视频背景 */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        .diary-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .back-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-subtle);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .back-btn svg {
+            width: 18px;
+            height: 18px;
+            stroke: var(--text-muted);
+        }
+
+        .page-title {
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 1px;
+        }
+
+        .save-btn {
+            padding: 10px 24px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent-amber), #d4a574);
+            border: none;
+            color: var(--bg-deep);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(201, 169, 110, 0.3);
+        }
+
+        .diary-card {
+            background: var(--bg-panel);
+            /* backdrop-filter removed */
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 32px;
+        }
+
+        .diary-date {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .diary-title {
+            font-size: 24px;
+            font-weight: 400;
+            margin-bottom: 24px;
+            border: none;
+            background: transparent;
+            color: var(--text-soft);
+            width: 100%;
+            outline: none;
+        }
+
+        .diary-title::placeholder {
+            color: var(--text-muted);
+        }
+
+        .diary-content {
+            font-size: 16px;
+            line-height: 1.8;
+            border: none;
+            background: transparent;
+            color: var(--text-soft);
+            width: 100%;
+            min-height: 300px;
+            outline: none;
+            resize: none;
+        }
+
+        .diary-content::placeholder {
+            color: var(--text-muted);
+        }
+
+        .emotions-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .emotions-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        .emotions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .emotion-tag {
+            padding: 6px 14px;
+            border-radius: 16px;
+            background: rgba(201, 169, 110, 0.15);
+            border: 1px solid rgba(201, 169, 110, 0.2);
+            color: var(--accent-amber);
+            font-size: 13px;
+        }
+
+        .emotion-tag-input {
+            padding: 6px 14px;
+            border-radius: 16px;
+            background: transparent;
+            border: 1px dashed var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 13px;
+            outline: none;
+            width: 100px;
+        }
+
+        .emotion-tag-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .status-msg {
+            text-align: center;
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--accent-amber);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .status-msg.show {
+            opacity: 1;
+        }
+
+        .page-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000000;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.6s ease;
+        }
+
+        .page-transition.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+    </style>
+</head>
+<body>
+    <div class="diary-container">
+        <div class="top-bar">
+            <button class="back-btn" onclick="goBack()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 12H5M12 19l-7-7 7-7"></path>
+                </svg>
+            </button>
+            <div class="page-title">日记</div>
+            <button class="save-btn" onclick="saveDiary()">保存</button>
+        </div>
+
+        <div class="diary-card">
+            <div class="diary-date" id="diaryDate"></div>
+            <input type="text" class="diary-title" id="diaryTitle" placeholder="给这篇日记起个名字...">
+            <textarea class="diary-content" id="diaryContent" placeholder="写下你想记录的..."></textarea>
+
+            <div class="emotions-section">
+                <div class="emotions-label">情绪标签</div>
+                <div class="emotions-list" id="emotionsList">
+                    <!-- 情绪标签将动态插入 -->
+                </div>
+            </div>
+        </div>
+
+        <div class="status-msg" id="statusMsg">已保存</div>
+    </div>
+
+    <!-- 视频背景 -->
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="page-transition" id="pageTransition"></div>
+
+    <script src="src/data/db.js"></script>
+    <script src="src/data/storage.js"></script>
+    <script src="src/data/videoStorage.js"></script>
+    <script>
+        let diaryData = null;
+
+        async function loadDiary() {
+            const data = await Storage.getCurrentDiary();
+            if (data) {
+                diaryData = data;
+                document.getElementById('diaryTitle').value = diaryData.title || '';
+                document.getElementById('diaryContent').value = diaryData.content || '';
+
+                // 格式化日期
+                const date = new Date(diaryData.date);
+                const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+                document.getElementById('diaryDate').textContent = date.toLocaleDateString('zh-CN', options);
+
+                // 显示情绪标签
+                const emotionsList = document.getElementById('emotionsList');
+                if (diaryData.emotions && diaryData.emotions.length > 0) {
+                    diaryData.emotions.forEach(emotion => {
+                        const tag = document.createElement('span');
+                        tag.className = 'emotion-tag';
+                        tag.textContent = emotion;
+                        emotionsList.appendChild(tag);
+                    });
+                }
+
+                // 添加添加标签的输入框
+                const addInput = document.createElement('input');
+                addInput.type = 'text';
+                addInput.className = 'emotion-tag-input';
+                addInput.placeholder = '+ 添加';
+                addInput.onkeypress = (e) => {
+                    if (e.key === 'Enter' && addInput.value.trim()) {
+                        const newTag = document.createElement('span');
+                        newTag.className = 'emotion-tag';
+                        newTag.textContent = addInput.value.trim();
+                        emotionsList.insertBefore(newTag, addInput);
+                        addInput.value = '';
+                    }
+                };
+                emotionsList.appendChild(addInput);
+            }
+        }
+
+        async function saveDiary() {
+            const title = document.getElementById('diaryTitle').value.trim();
+            const content = document.getElementById('diaryContent').value.trim();
+
+            if (!title && !content) {
+                showStatus('日记内容不能为空', false);
+                return;
+            }
+
+            // 收集情绪标签
+            const emotions = [];
+            document.querySelectorAll('.emotion-tag').forEach(tag => {
+                emotions.push(tag.textContent);
+            });
+
+            // 获取或创建日记ID
+            const diaryId = diaryData?.id || Date.now().toString();
+
+            const diary = {
+                id: diaryId,
+                title: title || '无题',
+                content: content,
+                emotions: emotions,
+                date: diaryData?.date || new Date().toISOString(),
+                messages: diaryData?.messages || [],
+                createdAt: diaryData?.createdAt || new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            // 保存到IndexedDB
+            await Storage.saveDiary(diary);
+
+            // 清除临时数据
+            await Storage.clearCurrentDiary();
+
+            showStatus('已保存', true);
+
+            setTimeout(() => {
+                window.location.href = 'timeline.html?type=diary';
+            }, 1000);
+        }
+
+        function showStatus(msg, success) {
+            const status = document.getElementById('statusMsg');
+            status.textContent = msg;
+            status.style.color = success ? '#4ade80' : '#f87171';
+            status.classList.add('show');
+            setTimeout(() => status.classList.remove('show'), 2000);
+        }
+
+        function goBack() {
+            const transition = document.getElementById('pageTransition');
+            transition.classList.add('active');
+            setTimeout(() => {
+                window.location.href = 'timeline.html?type=diary';
+            }, 600);
+        }
+
+        // 加载自定义视频背景
+        async function loadVideoBackground() {
+            if (window.VideoStorage) {
+                const blob = await VideoStorage.getActiveVideo();
+                if (blob) {
+                    const url = URL.createObjectURL(blob);
+                    const video = document.querySelector('.video-background');
+                    video.querySelector('source').src = url;
+                    const volume = await VideoStorage.getVideoVolume();
+                    video.volume = volume;
+                    video.load();
+                }
+            }
+        }
+
+        // 加载背景音频
+        async function loadBackgroundAudio() {
+            if (window.VideoStorage) {
+                const audioBlob = await VideoStorage.getAudioBlob();
+                if (audioBlob) {
+                    let audio = document.querySelector('.bg-audio');
+                    if (!audio) {
+                        audio = document.createElement('audio');
+                        audio.className = 'bg-audio';
+                        audio.loop = true;
+                        document.body.appendChild(audio);
+                    }
+                    audio.src = URL.createObjectURL(audioBlob);
+                    const volume = await VideoStorage.getAudioVolume();
+                    audio.volume = volume;
+                    audio.play().catch(() => {});
+                }
+            }
+        }
+
+        window.addEventListener('load', async () => {
+            loadDiary();
+            await loadVideoBackground();
+            await loadBackgroundAudio();
+        });
+
+        // 用户交互后取消静音
+        function enableAudioOnInteraction() {
+            const video = document.querySelector('.video-background');
+            const audio = document.querySelector('.bg-audio');
+            if (video) video.muted = false;
+            if (audio) audio.play().catch(() => {});
+            document.removeEventListener('click', enableAudioOnInteraction);
+            document.removeEventListener('scroll', enableAudioOnInteraction);
+        }
+        document.addEventListener('click', enableAudioOnInteraction);
+        document.addEventListener('scroll', enableAudioOnInteraction);
+    </script>
+
+</body>
+</html>
