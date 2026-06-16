@@ -57,6 +57,8 @@ const DB = {
                     memoriesStore.createIndex('startDate', 'startDate', { unique: false });
                     memoriesStore.createIndex('threadKey', 'threadKey', { unique: false });
                     memoriesStore.createIndex('instance', 'instance', { unique: false });
+                    memoriesStore.createIndex('memoryCategory', 'memoryCategory', { unique: false });
+                    memoriesStore.createIndex('tags', 'tags', { multiEntry: true });  // 支持多值索引搜索
                 }
 
                 // 情绪时间线 - 记录每次对话/日记的情绪变化

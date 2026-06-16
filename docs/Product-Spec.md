@@ -71,6 +71,8 @@ Temporal Reasoning（时间推理）← 新增
         ↓
 Thread Graph（线程图谱）← 新增
         ↓
+Context Builder（上下文构建）← 核心缺失
+        ↓
 Recall Ranking（召回排序）
         ↓
 Companion Response（陪伴回复）
@@ -78,11 +80,25 @@ Companion Response（陪伴回复）
 
 **V2 新增模块：**
 
-| 模块 | 职责 | 核心能力 |
+| 模块 | 职责 | 核心能力 | 优先级 |
+|------|------|----------|--------|
+| Context Builder | 上下文构建 | 从记忆中筛选最相关的内容 | P0 |
+| Memory Retrieval Ranking | 召回排序 | 按相关性排序记忆 | P0 |
+| Temporal Reasoning | 时间推理 | 区分 2025考试 vs 2026考试 | P1 |
+| Thread Graph | 线程图谱 | 事件链演化（构思→开发→完成） | P1 |
+| Episode Memory | 情景记忆 | 具体经历（如"第一次完成记忆系统"） | P2 |
+
+**V2 问题清单：**
+
+| 问题 | 状态 | 解决方案 |
 |------|------|----------|
-| Temporal Reasoning | 时间推理 | 区分 2025考试 vs 2026考试 |
-| Thread Graph | 线程图谱 | 事件链演化（构思→开发→完成） |
-| Recall Ranking | 召回排序 | 自然人格化召回，不暴露记忆机制 |
+| VideoStorage 和 DB 重复 | 待修复 | 统一数据库连接 |
+| 记忆检索性能问题 | 待优化 | 增加 tags 索引 |
+| Memory Decay 不合理 | 待修复 | 新增 memoryCategory，identity 不衰减 |
+| Recall Prompt 有风险 | 待优化 | 给一点来源感，不完全隐藏 |
+| 缺少 Episodic Memory | 待新增 | 三层记忆结构（semantic/episodic/emotional） |
+| Memory Consolidation 太弱 | 待优化 | 优先依据 threadKey |
+| 缺少 Context Builder | 待新增 | 最核心缺失，优先实现 |
 
 ## 首页入口
 
@@ -653,7 +669,7 @@ Companion Response（陪伴回复）
 | `diaries` | 日记 | id, title, content, emotions[], date, source, messages[] |
 | `chats` | 对话 | id, title, messages[{role, content, timestamp, analysis?}], date, emotionSummary{primary, secondary, intensity} |
 | `fragments` | 碎碎念 | id, text, date, emotion, organized, diaryId |
-| `memories` | AI记忆 | id, type, content, importance, confidence, isConfirmed, sourceId, tags[], lastReferencedAt, referenceCount, decayScore, status, temporal{startDate,endDate,isRecurring,periodLabel,timeBucket}, threadKey, instance, parentThreadId |
+| `memories` | AI记忆 | id, type, content, importance, confidence, isConfirmed, sourceId, tags[], lastReferencedAt, referenceCount, decayScore, status, temporal{...}, threadKey, instance, parentThreadId, memoryCategory |
 | `emotionTimeline` | 情绪时间线 | id, timestamp, sourceId, sourceType, emotions{anxiety:0.7,...}, dominantEmotion |
 | `settings` | 设置 | 键值对存储 |
 | `videoBackground` | 视频背景 | customVideos[], activeVideoId |
@@ -676,12 +692,31 @@ Companion Response（陪伴回复）
 | `isConfirmed` | 用户是否明确确认过这条记忆（区分 AI 推断 vs 用户确认） |
 | `lastReferencedAt` | 最后被 AI 在对话中引用的时间 |
 | `referenceCount` | 被 AI 引用的次数，避免"记忆复读机" |
-| `decayScore` | 0-1，记忆衰减分数，随时间自然衰减 |
+| `decayScore` | 0-1，记忆衰减分数，随时间自然衰减（identity 类不衰减） |
 | `status` | 记忆状态：active/archived |
 | `temporal` | 时间上下文：{startDate, endDate, isRecurring, periodLabel, timeBucket} |
 | `threadKey` | 线程标识符（如"computer_exam"），用于识别同类事件 |
 | `instance` | 线程实例（如"2026_spring"），区分不同时间的同类事件 |
 | `parentThreadId` | 父线程 ID，用于构建事件链 |
+| `memoryCategory` | 记忆分类：identity/relationship/project/event/emotion |
+
+#### 三层记忆结构
+
+| 层 | 说明 | 示例 | 衰减 |
+|---|------|------|------|
+| **Semantic Memory** | 长期事实 | "用户叫唐彬程"、"用户是计算机专业" | identity 不衰减 |
+| **Episodic Memory** | 具体经历 | "2026-06-16 第一次完成记忆系统" | 正常衰减 |
+| **Emotional Memory** | 情绪节点 | "长期焦虑后突然放松" | 正常衰减 |
+
+#### memoryCategory 说明
+
+| 分类 | 说明 | 衰减规则 |
+|------|------|----------|
+| `identity` | 身份信息（姓名、专业、职业） | **永不衰减** |
+| `relationship` | 人物关系 | 正常衰减 |
+| `project` | 项目相关 | 正常衰减 |
+| `event` | 事件相关 | 正常衰减 |
+| `emotion` | 情绪相关 | 正常衰减 |
 
 #### 时间上下文说明
 
@@ -706,6 +741,7 @@ Companion Response（陪伴回复）
 {
   "threadKey": "computer_exam",
   "instance": "2026_spring",
+  "memoryCategory": "event",
   "temporal": {
     "startDate": "2026-05-01",
     "endDate": null,

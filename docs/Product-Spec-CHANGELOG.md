@@ -20,7 +20,33 @@
   - Memory Engine（记忆系统）
   - Data Layer（数据库）
 - **核心原则**：记忆引擎是共享的，人设只影响表达方式
-- **Memory Engine V2 架构**：新增 Temporal Reasoning 和 Thread Graph
+- **Memory Engine V2 架构**：
+  - Context Builder（上下文构建）- 核心缺失，优先实现
+  - Memory Retrieval Ranking（召回排序）
+  - Temporal Reasoning（时间推理）
+  - Thread Graph（线程图谱）
+  - Episode Memory（情景记忆）
+
+### 问题清单
+| 问题 | 状态 | 解决方案 |
+|------|------|----------|
+| VideoStorage 和 DB 重复 | 待修复 | 统一数据库连接 |
+| 记忆检索性能问题 | 待优化 | 增加 tags 索引 |
+| Memory Decay 不合理 | 待修复 | 新增 memoryCategory，identity 不衰减 |
+| Recall Prompt 有风险 | 待优化 | 给一点来源感，不完全隐藏 |
+| 缺少 Episodic Memory | 待新增 | 三层记忆结构 |
+| Memory Consolidation 太弱 | 待优化 | 优先依据 threadKey |
+| 缺少 Context Builder | 待新增 | 最核心缺失，优先实现 |
+
+### 数据库调整
+- **memories表**：
+  - 新增 `memoryCategory` 字段和索引（identity/relationship/project/event/emotion）
+  - 新增 `tags` 多值索引（支持快速搜索）
+
+### 三层记忆结构
+- **Semantic Memory**：长期事实（identity 不衰减）
+- **Episodic Memory**：具体经历
+- **Emotional Memory**：情绪节点
 
 ### 新增功能
 - **Temporal Memory（时间记忆）**：
