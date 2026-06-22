@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间线间距测试 - PROTOTYPE</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --accent-amber: #c9a96e;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-soft);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+        }
+
+        .control-label {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .control-slider {
+            width: 120px;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--border-subtle);
+            outline: none;
+        }
+
+        .control-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-amber);
+            cursor: pointer;
+        }
+
+        .control-value {
+            font-size: 12px;
+            color: var(--accent-amber);
+            min-width: 40px;
+        }
+
+        .effect-name {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: var(--text-muted);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .timeline-scroll {
+            height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            z-index: 10;
+            scrollbar-width: none;
+        }
+
+        .timeline-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .timeline-item {
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+            will-change: opacity, transform, filter;
+            transition: margin 0.3s ease;
+        }
+
+        .item-content {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .item-date {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .item-title {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .item-excerpt {
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .item-hint {
+            font-size: 12px;
+            color: var(--accent-amber);
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+
+        /* 模糊效果 */
+        .effect-blur .timeline-item {
+            opacity: 0.3;
+            filter: blur(5px);
+            transform: scale(0.95);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .info-box {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 11px;
+            color: var(--text-muted);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <span class="control-label">间距:</span>
+        <input type="range" class="control-slider" id="spacingSlider" min="0" max="30" value="15">
+        <span class="control-value" id="spacingValue">15vh</span>
+        <span class="control-label" style="margin-left: 12px;">项目高度:</span>
+        <input type="range" class="control-slider" id="heightSlider" min="50" max="80" value="70">
+        <span class="control-value" id="heightValue">70vh</span>
+    </div>
+
+    <div class="info-box">
+        间距: 项目之间的距离 | 项目高度: 每个卡片的高度<br>
+        顶部和底部项目始终保持可滚到中心
+    </div>
+
+    <div class="effect-name">拖动滑块调整间距，观察效果</div>
+
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="../backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="timeline-scroll effect-blur" id="timelineScroll">
+        <div class="timeline-item" id="item-0">
+            <div class="item-content">
+                <div class="item-date">2026年6月15日</div>
+                <div class="item-title">夏日的开始</div>
+                <div class="item-excerpt">今天阳光特别好，和朋友一起去海边玩了一天。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item" id="item-1">
+            <div class="item-content">
+                <div class="item-date">2026年6月14日</div>
+                <div class="item-title">深夜的思考</div>
+                <div class="item-excerpt">一个人坐在窗边，看着城市的灯光，想着未来的方向。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item" id="item-2">
+            <div class="item-content">
+                <div class="item-date">2026年6月13日</div>
+                <div class="item-title">小确幸</div>
+                <div class="item-excerpt">今天收到了一份意外的礼物，虽然不贵重，但很暖心。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item" id="item-3">
+            <div class="item-content">
+                <div class="item-date">2026年6月12日</div>
+                <div class="item-title">雨天的咖啡</div>
+                <div class="item-excerpt">下雨天最适合喝咖啡了。坐在咖啡馆里，听着雨声。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item" id="item-4">
+            <div class="item-content">
+                <div class="item-date">2026年6月11日</div>
+                <div class="item-title">周末的慵懒</div>
+                <div class="item-excerpt">什么都不想做，就躺在沙发上，看着天花板发呆。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item" id="item-5">
+            <div class="item-content">
+                <div class="item-date">2026年6月10日</div>
+                <div class="item-title">新的开始</div>
+                <div class="item-excerpt">下定决心要改变自己。从今天开始，每天进步一点点。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item" id="item-6">
+            <div class="item-content">
+                <div class="item-date">2026年6月9日</div>
+                <div class="item-title">回忆的味道</div>
+                <div class="item-excerpt">闻到了小时候常吃的零食的味道，突然想起了很多童年。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item" id="item-7">
+            <div class="item-content">
+                <div class="item-date">2026年6月8日</div>
+                <div class="item-title">星空下的约定</div>
+                <div class="item-excerpt">和喜欢的人一起看星星，虽然没有说什么，但心里很满足。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const spacingSlider = document.getElementById('spacingSlider');
+        const spacingValue = document.getElementById('spacingValue');
+        const heightSlider = document.getElementById('heightSlider');
+        const heightValue = document.getElementById('heightValue');
+        const items = document.querySelectorAll('.timeline-item');
+
+        function updateSpacing() {
+            const spacing = spacingSlider.value;
+            const height = heightSlider.value;
+            spacingValue.textContent = spacing + 'vh';
+            heightValue.textContent = height + 'vh';
+
+            items.forEach((item, index) => {
+                item.style.minHeight = height + 'vh';
+                item.style.margin = spacing + 'vh 0';
+            });
+
+            updateItemsOpacity();
+        }
+
+        spacingSlider.addEventListener('input', updateSpacing);
+        heightSlider.addEventListener('input', updateSpacing);
+
+        function updateItemsOpacity() {
+            const scrollContainer = document.getElementById('timelineScroll');
+            const scrollTop = scrollContainer.scrollTop;
+            const viewportHeight = window.innerHeight;
+            const viewportCenter = scrollTop + viewportHeight / 2;
+
+            items.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const itemCenter = scrollTop + rect.top + rect.height / 2;
+
+                const distance = viewportCenter - itemCenter;
+                const absDistance = Math.abs(distance);
+                const maxDistance = viewportHeight * 0.6;
+                const ratio = Math.min(absDistance / maxDistance, 1);
+
+                const opacity = 1 - (ratio * 0.85);
+                const blur = ratio * 5;
+                const scale = 0.95 + (1 - ratio) * 0.05;
+
+                item.style.opacity = opacity;
+                item.style.transform = `scale(${scale})`;
+                item.style.filter = `blur(${blur}px)`;
+            });
+        }
+
+        let ticking = false;
+        document.getElementById('timelineScroll').addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    updateItemsOpacity();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        updateSpacing();
+    </script>
+</body>
+</html>

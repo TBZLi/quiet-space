@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间线动态效果测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --accent-amber: #c9a96e;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-soft);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* 效果选择器 */
+        .effect-selector {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .effect-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .effect-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .effect-btn.active {
+            background: var(--accent-amber);
+            color: #000;
+            border-color: var(--accent-amber);
+        }
+
+        .effect-name {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: var(--text-muted);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* 视频背景 */
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        /* 滚动容器 */
+        .timeline-scroll {
+            height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            z-index: 10;
+            scrollbar-width: none;
+        }
+
+        .timeline-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 时间线项目 */
+        .timeline-item {
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+            will-change: opacity, transform, filter;
+            margin: 15vh 0;
+        }
+
+        .item-content {
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .item-date {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .item-title {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .item-excerpt {
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .item-hint {
+            font-size: 12px;
+            color: var(--accent-amber);
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+
+        /* 效果1：淡入淡出 + 缩放（当前） */
+        .effect-fade-scale .timeline-item {
+            opacity: 0.15;
+            transform: scale(0.9);
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 效果2：模糊渐变 */
+        .effect-blur .timeline-item {
+            opacity: 0.3;
+            filter: blur(5px);
+            transform: scale(0.95);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 效果3：视差滚动 */
+        .effect-parallax .timeline-item {
+            opacity: 0.2;
+            transform: translateY(30px) scale(0.95);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 效果4：旋转进入 */
+        .effect-rotate .timeline-item {
+            opacity: 0.1;
+            transform: rotate(-8deg) translateX(-80px) scale(0.9);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 效果5：弹跳进入 */
+        .effect-bounce .timeline-item {
+            opacity: 0.1;
+            transform: scale(0.7);
+            transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* 效果6：3D翻转 */
+        .effect-3d .timeline-item {
+            opacity: 0.1;
+            transform: perspective(1000px) rotateX(20deg) scale(0.9);
+            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 效果7：呼吸效果 */
+        .effect-breathe .timeline-item {
+            opacity: 0.2;
+            transform: scale(0.92);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        /* 效果8：滑入效果 */
+        .effect-slide .timeline-item {
+            opacity: 0;
+            transform: translateX(-50px);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+    </style>
+</head>
+<body>
+    <div class="effect-selector">
+        <button class="effect-btn active" onclick="switchEffect('fade-scale')">1. 淡入缩放</button>
+        <button class="effect-btn" onclick="switchEffect('blur')">2. 模糊渐变</button>
+        <button class="effect-btn" onclick="switchEffect('parallax')">3. 视差滚动</button>
+        <button class="effect-btn" onclick="switchEffect('rotate')">4. 旋转进入</button>
+        <button class="effect-btn" onclick="switchEffect('bounce')">5. 弹跳进入</button>
+        <button class="effect-btn" onclick="switchEffect('3d')">6. 3D翻转</button>
+        <button class="effect-btn" onclick="switchEffect('breathe')">7. 呼吸效果</button>
+        <button class="effect-btn" onclick="switchEffect('slide')">8. 滑入效果</button>
+    </div>
+
+    <div class="effect-name" id="effectName">1. 淡入缩放（当前效果）</div>
+
+    <video class="video-background" autoplay muted loop playsinline>
+        <source src="../backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <div class="timeline-scroll effect-fade-scale" id="timelineScroll">
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月15日</div>
+                <div class="item-title">夏日的开始</div>
+                <div class="item-excerpt">今天阳光特别好，和朋友一起去海边玩了一天。海水很凉，但心情很温暖。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月14日</div>
+                <div class="item-title">深夜的思考</div>
+                <div class="item-excerpt">一个人坐在窗边，看着城市的灯光，想着未来的方向。有些迷茫，但也很平静。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月13日</div>
+                <div class="item-title">小确幸</div>
+                <div class="item-excerpt">今天收到了一份意外的礼物，虽然不贵重，但很暖心。生活中的小确幸，真的很美好。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月12日</div>
+                <div class="item-title">雨天的咖啡</div>
+                <div class="item-excerpt">下雨天最适合喝咖啡了。坐在咖啡馆里，听着雨声，看着窗外的行人，时间过得特别慢。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月11日</div>
+                <div class="item-title">周末的慵懒</div>
+                <div class="item-excerpt">什么都不想做，就躺在沙发上，看着天花板发呆。偶尔这样放松一下，也挺好的。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月10日</div>
+                <div class="item-title">新的开始</div>
+                <div class="item-excerpt">下定决心要改变自己。从今天开始，每天进步一点点，相信未来会更好。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月9日</div>
+                <div class="item-title">回忆的味道</div>
+                <div class="item-excerpt">闻到了小时候常吃的零食的味道，突然想起了很多童年的回忆。时间过得真快。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月8日</div>
+                <div class="item-title">星空下的约定</div>
+                <div class="item-excerpt">和喜欢的人一起看星星，虽然没有说什么，但心里很满足。这样的时刻，值得珍藏。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const effectNames = {
+            'fade-scale': '1. 淡入缩放（当前效果）',
+            'blur': '2. 模糊渐变',
+            'parallax': '3. 视差滚动',
+            'rotate': '4. 旋转进入',
+            'bounce': '5. 弹跳进入',
+            '3d': '6. 3D翻转',
+            'breathe': '7. 呼吸效果',
+            'slide': '8. 滑入效果'
+        };
+
+        let currentEffect = 'fade-scale';
+        let ticking = false;
+        let currentIndex = 0;
+
+        function scrollToItem(index) {
+            const scrollContainer = document.getElementById('timelineScroll');
+            const items = document.querySelectorAll('.timeline-item');
+            if (items[index]) {
+                const item = items[index];
+                const itemCenter = item.offsetTop + item.offsetHeight / 2;
+                const targetScroll = itemCenter - scrollContainer.clientHeight / 2;
+                scrollContainer.scrollTo({
+                    top: targetScroll,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        function switchEffect(effect) {
+            const scrollContainer = document.getElementById('timelineScroll');
+            scrollContainer.className = 'timeline-scroll effect-' + effect;
+            currentEffect = effect;
+
+            document.querySelectorAll('.effect-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('effectName').textContent = effectNames[effect];
+
+            updateItemsOpacity();
+        }
+
+        function updateItemsOpacity() {
+            const scrollContainer = document.getElementById('timelineScroll');
+            const scrollTop = scrollContainer.scrollTop;
+            const viewportHeight = window.innerHeight;
+            const viewportCenter = scrollTop + viewportHeight / 2;
+
+            // 聚焦区：视口中心 25% 的区域保持清晰
+            const focusZone = viewportHeight * 0.125;
+            // 最大距离：超出此距离完全模糊
+            const maxDistance = viewportHeight * 0.9;
+
+            const items = document.querySelectorAll('.timeline-item');
+            for (let index = 0; index < items.length; index++) {
+                const item = items[index];
+                const rect = item.getBoundingClientRect();
+                const itemCenter = scrollTop + rect.top + rect.height / 2;
+
+                const distance = viewportCenter - itemCenter;
+                const absDistance = Math.abs(distance);
+
+                // 聚焦区内：完全清晰
+                let opacity, scale, blur, ratio;
+                if (absDistance < focusZone) {
+                    opacity = 1;
+                    scale = 1;
+                    blur = 0;
+                    ratio = 0;
+                } else {
+                    // 超出聚焦区：快速衰减
+                    ratio = Math.min((absDistance - focusZone) / (maxDistance - focusZone), 1);
+                    opacity = 1 - (ratio * 0.85);
+                    scale = 1 - (ratio * 0.1);
+                    blur = ratio * 5;
+                }
+
+                const translateY = distance * 0.1;
+                const rotate = ratio * -3;
+                const translateX = ratio * -50;
+
+                switch (currentEffect) {
+                    case 'fade-scale':
+                        item.style.opacity = opacity;
+                        item.style.transform = `scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'blur':
+                        item.style.opacity = opacity;
+                        item.style.transform = `scale(${0.95 + (1 - ratio) * 0.05})`;
+                        item.style.filter = `blur(${blur}px)`;
+                        break;
+                    case 'parallax':
+                        item.style.opacity = opacity;
+                        item.style.transform = `translateY(${translateY}px) scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'rotate':
+                        item.style.opacity = opacity;
+                        const rotateAngle = ratio * -8;
+                        const translateXVal = ratio * -80;
+                        item.style.transform = `rotate(${rotateAngle}deg) translateX(${translateXVal}px) scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'bounce':
+                        item.style.opacity = opacity;
+                        item.style.transform = `scale(${0.7 + (1 - ratio) * 0.3})`;
+                        item.style.filter = 'none';
+                        break;
+                    case '3d':
+                        item.style.opacity = opacity;
+                        item.style.transform = `perspective(1000px) rotateX(${rotate * 6}deg) scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'breathe':
+                        item.style.opacity = opacity;
+                        const breathe = 0.92 + Math.sin(Date.now() / 1000 + index) * 0.03 * ratio;
+                        item.style.transform = `scale(${breathe})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'slide':
+                        item.style.opacity = opacity;
+                        item.style.transform = `translateX(${translateX}px)`;
+                        item.style.filter = 'none';
+                        break;
+                }
+            }
+        }
+
+        function setupScrollListener() {
+            const scrollContainer = document.getElementById('timelineScroll');
+
+            scrollContainer.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(() => {
+                        updateItemsOpacity();
+                        ticking = false;
+                    });
+                    ticking = true;
+                }
+            });
+
+            // 鼠标拖动滚动 + 惯性
+            let isDragging = false;
+            let isDragged = false;
+            let startY = 0;
+            let scrollStart = 0;
+            let lastY = 0;
+            let lastTime = 0;
+            let velocity = 0;
+            let inertiaId = null;
+
+            scrollContainer.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                isDragged = false;
+                startY = e.clientY;
+                scrollStart = scrollContainer.scrollTop;
+                lastY = e.clientY;
+                lastTime = Date.now();
+                velocity = 0;
+                if (inertiaId) cancelAnimationFrame(inertiaId);
+                scrollContainer.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaY = Math.abs(startY - e.clientY);
+                if (deltaY > 5) {
+                    isDragged = true;
+                }
+                // 计算速度
+                const now = Date.now();
+                const dt = now - lastTime;
+                if (dt > 0) {
+                    velocity = (lastY - e.clientY) / dt;
+                }
+                lastY = e.clientY;
+                lastTime = now;
+                scrollContainer.scrollTop = scrollStart + (startY - e.clientY);
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                scrollContainer.style.cursor = '';
+
+                // 惯性滚动
+                if (isDragged && Math.abs(velocity) > 0.5) {
+                    let currentVelocity = velocity * 15;
+                    const friction = 0.95;
+
+                    function inertiaScroll() {
+                        if (Math.abs(currentVelocity) < 0.5) return;
+                        scrollContainer.scrollTop += currentVelocity;
+                        currentVelocity *= friction;
+                        inertiaId = requestAnimationFrame(inertiaScroll);
+                    }
+                    inertiaScroll();
+                }
+            });
+
+            // 标记拖动状态，阻止点击进入
+            scrollContainer.addEventListener('click', (e) => {
+                if (isDragged) {
+                    e.stopPropagation();
+                    isDragged = false;
+                }
+            }, true);
+
+            updateItemsOpacity();
+        }
+
+        // 呼吸效果动画循环
+        function animateBreathe() {
+            if (currentEffect === 'breathe') {
+                updateItemsOpacity();
+            }
+            requestAnimationFrame(animateBreathe);
+        }
+
+        window.addEventListener('load', () => {
+            setupScrollListener();
+            animateBreathe();
+        });
+    </script>
+</body>
+</html>

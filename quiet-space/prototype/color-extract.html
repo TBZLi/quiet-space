@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频主色调提取 - PROTOTYPE</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-deep: #000000;
+            --accent-primary: #c9a96e;
+            --accent-secondary: #d4a574;
+            --text-soft: #e8e8e8;
+            --text-muted: #b0b0c0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text-soft);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .video-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+            opacity: 0.6;
+        }
+
+        /* 控制面板 */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            align-items: center;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .control-btn.active {
+            background: var(--accent-secondary);
+            color: #000;
+            border-color: var(--accent-secondary);
+        }
+
+        .color-info {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 16px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 12px 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .color-swatch {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .color-label {
+            font-size: 12px;
+            color: var(--text-soft);
+            margin-top: 4px;
+        }
+
+        .color-value {
+            font-size: 11px;
+            color: var(--accent-secondary);
+        }
+
+        /* 时间线 */
+        .timeline-scroll {
+            height: 100vh;
+            overflow-y: auto;
+            position: relative;
+            z-index: 10;
+            scrollbar-width: none;
+        }
+
+        .timeline-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .timeline-item {
+            min-height: 70vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 40px;
+            margin: 15vh 0;
+        }
+
+        .item-content {
+            max-width: 500px;
+            width: 100%;
+            text-align: left;
+            padding-left: 60px;
+            border-left: 3px solid var(--accent-primary);
+        }
+
+        .item-date {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            letter-spacing: 2px;
+        }
+
+        .item-title {
+            font-size: 28px;
+            font-weight: 400;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .item-emotions {
+            display: flex;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+
+        .item-emotion {
+            padding: 5px 14px;
+            border-radius: 14px;
+            background: rgba(201, 169, 110, 0.15);
+            font-size: 12px;
+            color: var(--accent-secondary);
+        }
+
+        .item-excerpt {
+            font-size: 15px;
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        .item-hint {
+            font-size: 12px;
+            color: var(--accent-primary);
+            margin-top: 20px;
+            opacity: 0.8;
+        }
+
+        /* 聚焦区效果 */
+        .timeline-item {
+            opacity: 0.3;
+            filter: blur(3px);
+            transform: scale(0.97);
+            transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .timeline-item.center {
+            opacity: 1;
+            filter: none;
+            transform: scale(1);
+        }
+
+        /* 隐藏的 canvas */
+        #colorCanvas {
+            display: none;
+        }
+
+        /* 颜色提取指示器 */
+        .extracting-indicator {
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: var(--accent-secondary);
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 16px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: none;
+        }
+
+        .extracting-indicator.show {
+            display: block;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="control-panel">
+        <button class="control-btn" onclick="toggleAutoExtract()">自动提取</button>
+        <button class="control-btn" onclick="extractNow()">立即提取</button>
+        <button class="control-btn" onclick="resetColors()">重置颜色</button>
+        <span style="color: var(--text-muted); font-size: 12px;">|</span>
+        <button class="control-btn" onclick="toggleVideo()">暂停/播放</button>
+        <button class="control-btn" onclick="videoFileInput.click()">更换视频</button>
+    </div>
+
+    <div class="extracting-indicator" id="extractingIndicator">正在提取颜色...</div>
+
+    <div class="color-info" id="colorInfo">
+        <div>
+            <div class="color-swatch" id="swatch1" style="background: #c9a96e;"></div>
+            <div class="color-label">主色</div>
+            <div class="color-value" id="colorValue1">#c9a96e</div>
+        </div>
+        <div>
+            <div class="color-swatch" id="swatch2" style="background: #d4a574;"></div>
+            <div class="color-label">辅色</div>
+            <div class="color-value" id="colorValue2">#d4a574</div>
+        </div>
+        <div>
+            <div class="color-swatch" id="swatch3" style="background: #e8e8e8;"></div>
+            <div class="color-label">文字</div>
+            <div class="color-value" id="colorValue3">#e8e8e8</div>
+        </div>
+    </div>
+
+    <video class="video-background" id="videoBg" autoplay muted loop playsinline>
+        <source src="../backgrounds/summer-watermelon.mp4" type="video/mp4">
+    </video>
+
+    <canvas id="colorCanvas" width="100" height="100"></canvas>
+
+    <!-- 视频选择 -->
+    <input type="file" id="videoFileInput" accept="video/mp4,video/webm,video/ogg" style="display: none;">
+
+    <div class="timeline-scroll" id="timelineScroll">
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月15日</div>
+                <div class="item-title">夏日的开始</div>
+                <div class="item-emotions">
+                    <span class="item-emotion">开心</span>
+                    <span class="item-emotion">期待</span>
+                </div>
+                <div class="item-excerpt">今天阳光特别好，和朋友一起去海边玩了一天。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月14日</div>
+                <div class="item-title">深夜的思考</div>
+                <div class="item-emotions">
+                    <span class="item-emotion">平静</span>
+                </div>
+                <div class="item-excerpt">一个人坐在窗边，看着城市的灯光，想着未来的方向。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月13日</div>
+                <div class="item-title">小确幸</div>
+                <div class="item-emotions">
+                    <span class="item-emotion">感动</span>
+                    <span class="item-emotion">温暖</span>
+                </div>
+                <div class="item-excerpt">今天收到了一份意外的礼物，虽然不贵重，但很暖心。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+
+        <div class="timeline-item">
+            <div class="item-content">
+                <div class="item-date">2026年6月12日</div>
+                <div class="item-title">雨天的咖啡</div>
+                <div class="item-emotions">
+                    <span class="item-emotion">放松</span>
+                </div>
+                <div class="item-excerpt">下雨天最适合喝咖啡了。坐在咖啡馆里，听着雨声。</div>
+                <div class="item-hint">点击查看详情 →</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('videoBg');
+        const canvas = document.getElementById('colorCanvas');
+        const ctx = canvas.getContext('2d');
+        const videoFileInput = document.getElementById('videoFileInput');
+        let autoExtract = false;
+        let extractInterval = null;
+
+        // 加载用户上传的视频
+        async function loadUserVideo() {
+            try {
+                // 尝试从 IndexedDB 加载
+                const db = await new Promise((resolve, reject) => {
+                    const request = indexedDB.open('QuietSpaceDB', 2);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                const transaction = db.transaction(['videoBackground'], 'readonly');
+                const store = transaction.objectStore('videoBackground');
+
+                // 获取当前激活的视频ID
+                const activeId = await new Promise((resolve) => {
+                    const request = store.get('activeVideoId');
+                    request.onsuccess = () => resolve(request.result);
+                });
+
+                if (activeId) {
+                    // 获取视频列表
+                    const videos = await new Promise((resolve) => {
+                        const request = store.get('customVideos');
+                        request.onsuccess = () => resolve(request.result || []);
+                    });
+
+                    const activeVideo = videos.find(v => v.id === activeId);
+                    if (activeVideo && activeVideo.blob) {
+                        const url = URL.createObjectURL(activeVideo.blob);
+                        video.querySelector('source').src = url;
+                        video.load();
+                        console.log('已加载用户视频:', activeVideo.name);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log('未找到用户视频，使用默认视频');
+            }
+        }
+
+        // 文件上传处理
+        videoFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                video.querySelector('source').src = url;
+                video.load();
+            }
+        });
+
+        // 主色调提取算法
+        function extractColors() {
+            // 绘制视频当前帧到 canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // 收集所有像素颜色
+            const colors = [];
+            for (let i = 0; i < data.length; i += 16) { // 每4个像素采样一次
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // 过滤掉太暗或太亮的颜色
+                const brightness = (r + g + b) / 3;
+                if (brightness > 30 && brightness < 240) {
+                    colors.push([r, g, b]);
+                }
+            }
+
+            if (colors.length === 0) return;
+
+            // 简单的 K-means 聚类（3个颜色）
+            const clusters = kMeans(colors, 3, 10);
+
+            // 按亮度排序
+            clusters.sort((a, b) => {
+                const brightA = (a[0] + a[1] + a[2]) / 3;
+                const brightB = (b[0] + b[1] + b[2]) / 3;
+                return brightB - brightA;
+            });
+
+            // 提高色调
+            clusters = clusters.map(c => [
+                Math.min(255, Math.round(c[0] * 1.3)),
+                Math.min(255, Math.round(c[1] * 1.3)),
+                Math.min(255, Math.round(c[2] * 1.3))
+            ]);
+
+            // 转换为 HEX（文字颜色确保足够亮）
+            const hex1 = rgbToHex(clusters[0][0], clusters[0][1], clusters[0][2]);
+            const hex2 = rgbToHex(clusters[1][0], clusters[1][1], clusters[1][2]);
+            const hex3 = ensureBright(clusters[2][0], clusters[2][1], clusters[2][2]);
+
+            // 应用颜色
+            applyColors(hex1, hex2, hex3);
+        }
+
+        // K-means 聚类算法
+        function kMeans(points, k, iterations) {
+            // 随机初始化聚类中心
+            let centroids = [];
+            for (let i = 0; i < k; i++) {
+                centroids.push(points[Math.floor(Math.random() * points.length)]);
+            }
+
+            for (let iter = 0; iter < iterations; iter++) {
+                // 分配点到最近的聚类
+                const clusters = Array.from({ length: k }, () => []);
+                points.forEach(point => {
+                    let minDist = Infinity;
+                    let minIndex = 0;
+                    centroids.forEach((centroid, index) => {
+                        const dist = Math.sqrt(
+                            Math.pow(point[0] - centroid[0], 2) +
+                            Math.pow(point[1] - centroid[1], 2) +
+                            Math.pow(point[2] - centroid[2], 2)
+                        );
+                        if (dist < minDist) {
+                            minDist = dist;
+                            minIndex = index;
+                        }
+                    });
+                    clusters[minIndex].push(point);
+                });
+
+                // 更新聚类中心
+                centroids = clusters.map(cluster => {
+                    if (cluster.length === 0) return [0, 0, 0];
+                    const avg = [0, 0, 0];
+                    cluster.forEach(point => {
+                        avg[0] += point[0];
+                        avg[1] += point[1];
+                        avg[2] += point[2];
+                    });
+                    return avg.map(v => Math.round(v / cluster.length));
+                });
+            }
+
+            return centroids;
+        }
+
+        // RGB 转 HEX
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
+        // 确保颜色足够亮（文字可读性）
+        function ensureBright(r, g, b) {
+            const brightness = (r + g + b) / 3;
+            if (brightness < 150) {
+                // 如果太暗，提亮到 180-220 范围
+                const factor = 180 / Math.max(brightness, 1);
+                r = Math.min(255, Math.round(r * factor));
+                g = Math.min(255, Math.round(g * factor));
+                b = Math.min(255, Math.round(b * factor));
+            }
+            return rgbToHex(r, g, b);
+        }
+
+        // 应用颜色到 UI
+        function applyColors(primary, secondary, text) {
+            document.documentElement.style.setProperty('--accent-primary', primary);
+            document.documentElement.style.setProperty('--accent-secondary', secondary);
+            document.documentElement.style.setProperty('--text-soft', text);
+
+            // 更新色块显示
+            document.getElementById('swatch1').style.background = primary;
+            document.getElementById('swatch2').style.background = secondary;
+            document.getElementById('swatch3').style.background = text;
+
+            document.getElementById('colorValue1').textContent = primary;
+            document.getElementById('colorValue2').textContent = secondary;
+            document.getElementById('colorValue3').textContent = text;
+        }
+
+        // 重置为默认颜色
+        function resetColors() {
+            applyColors('#c9a96e', '#d4a574', '#e8e8e8');
+        }
+
+        // 切换自动提取
+        function toggleAutoExtract() {
+            autoExtract = !autoExtract;
+            const btn = event.target;
+            btn.classList.toggle('active', autoExtract);
+
+            if (autoExtract) {
+                extractInterval = setInterval(extractColors, 2000);
+                document.getElementById('extractingIndicator').classList.add('show');
+            } else {
+                clearInterval(extractInterval);
+                document.getElementById('extractingIndicator').classList.remove('show');
+            }
+        }
+
+        // 立即提取
+        function extractNow() {
+            document.getElementById('extractingIndicator').classList.add('show');
+            setTimeout(() => {
+                extractColors();
+                document.getElementById('extractingIndicator').classList.remove('show');
+            }, 500);
+        }
+
+        // 切换视频播放
+        function toggleVideo() {
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        }
+
+        // 聚焦区效果
+        function updateItems() {
+            const scrollContainer = document.getElementById('timelineScroll');
+            const scrollTop = scrollContainer.scrollTop;
+            const viewportHeight = window.innerHeight;
+            const viewportCenter = scrollTop + viewportHeight / 2;
+
+            const focusZone = viewportHeight * 0.125;
+
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const itemCenter = scrollTop + rect.top + rect.height / 2;
+                const absDistance = Math.abs(viewportCenter - itemCenter);
+
+                if (absDistance < focusZone) {
+                    item.classList.add('center');
+                } else {
+                    item.classList.remove('center');
+                }
+            });
+        }
+
+        let ticking = false;
+        document.getElementById('timelineScroll').addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(() => {
+                    updateItems();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        });
+
+        // 视频加载后初始提取
+        video.addEventListener('loadeddata', () => {
+            setTimeout(extractColors, 1000);
+        });
+
+        // 页面加载时尝试读取用户视频
+        window.addEventListener('load', () => {
+            loadUserVideo();
+        });
+
+        updateItems();
+    </script>
+</body>
+</html>

@@ -265,16 +265,16 @@ const mimeTypes = {
 
 ---
 
-### 3. 渐变色按钮
+### 3. 纯色按钮
 
-**使用位置**：保存按钮、发送按钮等
+**使用位置**：保存按钮、发送按钮、新建按钮等
 
 ```css
-background: linear-gradient(135deg, var(--accent-amber), #d4a574);
+background: var(--accent-amber);
 ```
 
 **优势**：
-- ✅ 视觉吸引力强
+- ✅ 简洁大方
 - ✅ 与整体氛围协调
 - ✅ 交互反馈明显
 
