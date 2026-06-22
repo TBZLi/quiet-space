@@ -1,0 +1,101 @@
+[
+  {
+    "id": "test-1",
+    "name": "基本信息召回",
+    "conversation": [
+      {"role": "user", "content": "我叫李天"},
+      {"role": "ai", "content": "你好李天"},
+      {"role": "user", "content": "我今年 25 岁"},
+      {"role": "ai", "content": "了解了"}
+    ],
+    "question": "我叫什么？",
+    "expected_keywords": ["李天"],
+    "weight": 1.0
+  },
+  {
+    "id": "test-2",
+    "name": "项目信息召回",
+    "conversation": [
+      {"role": "user", "content": "我在做一个叫 Quiet Space 的项目"},
+      {"role": "ai", "content": "听起来是个有趣的项目"},
+      {"role": "user", "content": "这是一个 AI 陪伴系统"},
+      {"role": "ai", "content": "明白了"}
+    ],
+    "question": "我在做什么项目？",
+    "expected_keywords": ["Quiet Space", "AI", "陪伴"],
+    "weight": 1.0
+  },
+  {
+    "id": "test-3",
+    "name": "情绪变化检测",
+    "conversation": [
+      {"role": "user", "content": "今天心情不太好，工作压力大"},
+      {"role": "ai", "content": "理解你的感受"},
+      {"role": "user", "content": "但是晚上和朋友吃饭后好多了"},
+      {"role": "ai", "content": "那就好"}
+    ],
+    "question": "我现在心情怎么样？",
+    "expected_keywords": ["好多了"],
+    "unexpected_keywords": ["压力大", "不好"],
+    "weight": 1.5,
+    "notes": "应该只召回最新的情绪状态，忽略旧的情绪"
+  },
+  {
+    "id": "test-4",
+    "name": "人生线程理解",
+    "conversation": [
+      {"role": "user", "content": "我最近在准备考研"},
+      {"role": "ai", "content": "加油，考研很重要"},
+      {"role": "user", "content": "目标是北京大学"},
+      {"role": "ai", "content": "很好的目标"},
+      {"role": "user", "content": "但有时候觉得很累"},
+      {"role": "ai", "content": "理解，坚持就是胜利"}
+    ],
+    "question": "我最近在忙什么？",
+    "expected_keywords": ["考研", "北京大学"],
+    "weight": 2.0
+  },
+  {
+    "id": "test-5",
+    "name": "时间区分能力",
+    "conversation": [
+      {"role": "user", "content": "2025年我参加了一次考试，没通过"},
+      {"role": "ai", "content": "那一定很失望"},
+      {"role": "user", "content": "2026年我再次参加，这次通过了"},
+      {"role": "ai", "content": "恭喜你！"}
+    ],
+    "question": "我的考试经历是什么？",
+    "expected_keywords": ["2025", "2026", "没通过", "通过"],
+    "weight": 2.0
+  },
+  {
+    "id": "test-6",
+    "name": "否定信息处理",
+    "conversation": [
+      {"role": "user", "content": "我以前喜欢打篮球"},
+      {"role": "ai", "content": "运动很好"},
+      {"role": "user", "content": "但现在不喜欢了，膝盖不好"},
+      {"role": "ai", "content": "理解，身体最重要"}
+    ],
+    "question": "我对篮球的态度是什么？",
+    "expected_keywords": ["不喜欢"],
+    "unexpected_keywords": ["喜欢"],
+    "weight": 2.0,
+    "notes": "应该只召回最新的态度，忽略旧的态度"
+  },
+  {
+    "id": "test-7",
+    "name": "多线程混合",
+    "conversation": [
+      {"role": "user", "content": "工作上要完成项目汇报"},
+      {"role": "ai", "content": "加油"},
+      {"role": "user", "content": "同时还在准备英语考试"},
+      {"role": "ai", "content": "两头忙，辛苦了"},
+      {"role": "user", "content": "家里还在装修"},
+      {"role": "ai", "content": "确实很忙"}
+    ],
+    "question": "我最近在忙什么？",
+    "expected_keywords": ["项目汇报", "英语考试", "装修"],
+    "weight": 2.0
+  }
+]

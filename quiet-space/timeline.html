@@ -11,6 +11,7 @@
             --bg-deep: #000000;
             --bg-panel: rgba(255, 255, 255, 0.04);
             --accent-amber: #c9a96e;
+            --accent-secondary: #d4a574;
             --text-soft: #e8e8e8;
             --text-muted: #b0b0c0;
             --border-subtle: rgba(255, 255, 255, 0.08);
@@ -84,7 +85,7 @@
         .new-btn {
             padding: 10px 24px;
             border-radius: 20px;
-            background: linear-gradient(135deg, var(--accent-amber), #d4a574);
+            background: var(--accent-amber);
             border: none;
             color: #000000;
             font-size: 14px;
@@ -105,8 +106,6 @@
             scrollbar-width: none;
             position: relative;
             z-index: 10;
-            padding-top: 20vh;
-            padding-bottom: 20vh;
         }
 
         .timeline-scroll::-webkit-scrollbar {
@@ -120,16 +119,17 @@
             align-items: center;
             justify-content: center;
             padding: 60px 40px;
-            opacity: 0.15;
-            transform: scale(0.9);
-            will-change: opacity, transform;
+            will-change: opacity, transform, filter;
+            margin: 15vh 0;
         }
 
         .item-content {
             max-width: 500px;
             width: 100%;
-            text-align: center;
+            text-align: left;
             cursor: pointer;
+            padding-left: 60px;
+            border-left: 3px solid var(--accent-amber);
         }
 
         .item-content:hover {
@@ -152,7 +152,7 @@
 
         .item-emotions {
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
             flex-wrap: wrap;
             gap: 8px;
             margin-bottom: 24px;
@@ -163,14 +163,14 @@
             border-radius: 14px;
             background: rgba(201, 169, 110, 0.15);
             font-size: 12px;
-            color: var(--accent-amber);
+            color: var(--accent-secondary);
         }
 
         .item-preview-text {
             font-size: 15px;
             line-height: 1.6;
             color: #b0b0c0;
-            max-height: 60px;
+            max-height: 72px;
             overflow: hidden;
             margin-bottom: 20px;
         }
@@ -289,6 +289,7 @@
         let currentType = 'diary';
         let items = [];
         let currentIndex = 0;
+        let currentEffect = 'fade-scale';
 
         async function loadTimeline() {
             const params = new URLSearchParams(window.location.search);
@@ -301,9 +302,21 @@
             };
             document.getElementById('pageTitle').textContent = titles[currentType] || '时间线';
 
+            // 加载时间线效果设置
+            if (window.VideoStorage) {
+                currentEffect = await VideoStorage.getTimelineEffect();
+            }
+
             items = await getItems();
             renderTimeline();
             setupScrollListener();
+
+            // 恢复滚动位置
+            const savedScroll = localStorage.getItem('timelineScroll_' + currentType);
+            if (savedScroll) {
+                const scrollContainer = document.getElementById('timelineScroll');
+                scrollContainer.scrollTop = parseInt(savedScroll);
+            }
         }
 
         async function getItems() {
@@ -372,7 +385,6 @@
                         <div class="item-title">${title}</div>
                         ${emotionsHTML}
                         <div class="item-preview-text">${previewContent}</div>
-                        <div class="item-hint">点击查看详情 →</div>
                     </div>
                 `;
 
@@ -404,9 +416,12 @@
             const scrollContainer = document.getElementById('timelineScroll');
             const items = document.querySelectorAll('.timeline-item');
             if (items[index]) {
-                const itemTop = items[index].offsetTop;
+                const item = items[index];
+                // 使用 offsetTop 计算，避免坐标系混用
+                const itemCenter = item.offsetTop + item.offsetHeight / 2;
+                const targetScroll = itemCenter - scrollContainer.clientHeight / 2;
                 scrollContainer.scrollTo({
-                    top: itemTop - 50,
+                    top: targetScroll,
                     behavior: 'smooth'
                 });
             }
@@ -424,7 +439,75 @@
                     });
                     ticking = true;
                 }
+                // 保存滚动位置
+                localStorage.setItem('timelineScroll_' + currentType, scrollContainer.scrollTop);
             });
+
+            // 鼠标拖动滚动 + 惯性
+            let isDragging = false;
+            let isDragged = false;
+            let startY = 0;
+            let scrollStart = 0;
+            let lastY = 0;
+            let lastTime = 0;
+            let velocity = 0;
+            let inertiaId = null;
+
+            scrollContainer.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                isDragged = false;
+                startY = e.clientY;
+                scrollStart = scrollContainer.scrollTop;
+                lastY = e.clientY;
+                lastTime = Date.now();
+                velocity = 0;
+                if (inertiaId) cancelAnimationFrame(inertiaId);
+                scrollContainer.style.cursor = 'grabbing';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const deltaY = Math.abs(startY - e.clientY);
+                if (deltaY > 5) {
+                    isDragged = true;
+                }
+                // 计算速度
+                const now = Date.now();
+                const dt = now - lastTime;
+                if (dt > 0) {
+                    velocity = (lastY - e.clientY) / dt;
+                }
+                lastY = e.clientY;
+                lastTime = now;
+                scrollContainer.scrollTop = scrollStart + (startY - e.clientY);
+            });
+
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                scrollContainer.style.cursor = '';
+
+                // 惯性滚动
+                if (isDragged && Math.abs(velocity) > 0.5) {
+                    let currentVelocity = velocity * 15;
+                    const friction = 0.95;
+
+                    function inertiaScroll() {
+                        if (Math.abs(currentVelocity) < 0.5) return;
+                        scrollContainer.scrollTop += currentVelocity;
+                        currentVelocity *= friction;
+                        inertiaId = requestAnimationFrame(inertiaScroll);
+                    }
+                    inertiaScroll();
+                }
+            });
+
+            // 标记拖动状态，阻止点击进入
+            scrollContainer.addEventListener('click', (e) => {
+                if (isDragged) {
+                    e.stopPropagation();
+                    isDragged = false;
+                }
+            }, true);
 
             // 初始计算
             updateItemsOpacity();
@@ -435,6 +518,11 @@
             const scrollTop = scrollContainer.scrollTop;
             const viewportHeight = window.innerHeight;
             const viewportCenter = scrollTop + viewportHeight / 2;
+
+            // 聚焦区：视口中心 25% 的区域保持清晰
+            const focusZone = viewportHeight * 0.125;
+            // 最大距离：超出此距离完全模糊
+            const maxDistance = viewportHeight * 0.9;
 
             let closestIndex = 0;
             let closestDistance = Infinity;
@@ -448,15 +536,72 @@
                 const distance = viewportCenter - itemCenter;
                 const absDistance = Math.abs(distance);
 
-                const maxDistance = viewportHeight * 0.6;
-                const ratio = Math.min(absDistance / maxDistance, 1);
-                const easedRatio = easeOutCubic(ratio);
+                // 聚焦区内：完全清晰
+                let opacity, scale, blur, easedRatio;
+                if (absDistance < focusZone) {
+                    opacity = 1;
+                    scale = 1;
+                    blur = 0;
+                    easedRatio = 0;
+                } else {
+                    // 超出聚焦区：快速衰减
+                    const ratio = Math.min((absDistance - focusZone) / (maxDistance - focusZone), 1);
+                    easedRatio = easeOutCubic(ratio);
+                    opacity = 1 - (easedRatio * 0.85);
+                    scale = 1 - (easedRatio * 0.1);
+                    blur = easedRatio * 5;
+                }
+                const translateY = distance * 0.1;
+                const rotateAngle = easedRatio * -8;
+                const translateXVal = easedRatio * -80;
 
-                const opacity = 1 - (easedRatio * 0.85);
-                const scale = 1 - (easedRatio * 0.1);
-
-                item.style.opacity = opacity;
-                item.style.transform = `scale(${scale})`;
+                switch (currentEffect) {
+                    case 'fade-scale':
+                        item.style.opacity = opacity;
+                        item.style.transform = `scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'blur':
+                        item.style.opacity = opacity;
+                        item.style.transform = `scale(${0.95 + (1 - easedRatio) * 0.05})`;
+                        item.style.filter = `blur(${blur}px)`;
+                        break;
+                    case 'parallax':
+                        item.style.opacity = opacity;
+                        item.style.transform = `translateY(${translateY}px) scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'rotate':
+                        item.style.opacity = opacity;
+                        item.style.transform = `rotate(${rotateAngle}deg) translateX(${translateXVal}px) scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'bounce':
+                        item.style.opacity = opacity;
+                        item.style.transform = `scale(${0.7 + (1 - easedRatio) * 0.3})`;
+                        item.style.filter = 'none';
+                        break;
+                    case '3d':
+                        item.style.opacity = opacity;
+                        item.style.transform = `perspective(1000px) rotateX(${rotateAngle * 6}deg) scale(${scale})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'breathe':
+                        item.style.opacity = opacity;
+                        const breathe = 0.92 + Math.sin(Date.now() / 1000 + index) * 0.03 * easedRatio;
+                        item.style.transform = `scale(${breathe})`;
+                        item.style.filter = 'none';
+                        break;
+                    case 'slide':
+                        item.style.opacity = opacity;
+                        item.style.transform = `translateX(${translateXVal}px)`;
+                        item.style.filter = 'none';
+                        break;
+                    default:
+                        item.style.opacity = opacity;
+                        item.style.transform = `scale(${scale})`;
+                        item.style.filter = 'none';
+                }
 
                 if (absDistance < closestDistance) {
                     closestDistance = absDistance;
@@ -529,6 +674,83 @@
             }
         }
 
+        // 从视频提取主色调
+        function extractColorsFromVideo() {
+            const video = document.querySelector('.video-background');
+            if (!video || video.readyState < 2) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 50;
+            canvas.height = 50;
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(video, 0, 0, 50, 50);
+            const imageData = ctx.getImageData(0, 0, 50, 50);
+            const data = imageData.data;
+
+            const colors = [];
+            for (let i = 0; i < data.length; i += 16) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const brightness = (r + g + b) / 3;
+                if (brightness > 30 && brightness < 240) {
+                    colors.push([r, g, b]);
+                }
+            }
+
+            if (colors.length < 10) return;
+
+            // 简单取平均色作为主色
+            const avg = [0, 0, 0];
+            colors.forEach(c => {
+                avg[0] += c[0];
+                avg[1] += c[1];
+                avg[2] += c[2];
+            });
+            const primary = avg.map(v => Math.min(255, Math.round(v / colors.length * 1.3)));
+
+            // 生成辅色（更亮）
+            const secondary = [
+                Math.min(255, Math.round(primary[0] * 1.15)),
+                Math.min(255, Math.round(primary[1] * 1.15)),
+                Math.min(255, Math.round(primary[2] * 1.15))
+            ];
+
+            // 应用颜色
+            const hexPrimary = rgbToHex(primary[0], primary[1], primary[2]);
+            const hexSecondary = rgbToHex(secondary[0], secondary[1], secondary[2]);
+            document.documentElement.style.setProperty('--accent-amber', hexPrimary);
+            document.documentElement.style.setProperty('--accent-secondary', hexSecondary);
+
+            // 存储颜色
+            localStorage.setItem('videoColors', JSON.stringify({ primary: hexPrimary, secondary: hexSecondary }));
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
+        // 页面加载时立即应用存储的颜色
+        (function() {
+            const stored = localStorage.getItem('videoColors');
+            if (stored) {
+                const colors = JSON.parse(stored);
+                document.documentElement.style.setProperty('--accent-amber', colors.primary);
+                document.documentElement.style.setProperty('--accent-secondary', colors.secondary);
+            }
+        })();
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
         // 加载背景音频
         async function loadBackgroundAudio() {
             if (window.VideoStorage) {
@@ -566,6 +788,11 @@
         }
         document.addEventListener('click', enableAudioOnInteraction);
         document.addEventListener('scroll', enableAudioOnInteraction);
+
+        // 视频加载后提取颜色
+        document.querySelector('.video-background').addEventListener('loadeddata', () => {
+            setTimeout(extractColorsFromVideo, 500);
+        });
     </script>
 </body>
 </html>

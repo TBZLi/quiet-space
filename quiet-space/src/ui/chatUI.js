@@ -181,7 +181,7 @@ const ChatUI = {
             <button onclick="ChatUI.closeModal()" style="
                 padding: 12px 32px;
                 border-radius: 20px;
-                background: ${btn.primary ? 'linear-gradient(135deg, var(--accent-amber), #d4a574)' : 'rgba(255, 255, 255, 0.05)'};
+                background: ${btn.primary ? 'var(--accent-amber)' : 'rgba(255, 255, 255, 0.05)'};
                 border: ${btn.primary ? 'none' : '1px solid var(--border-subtle)'};
                 color: ${btn.primary ? 'var(--bg-deep)' : 'var(--text-muted)'};
                 font-size: 14px;

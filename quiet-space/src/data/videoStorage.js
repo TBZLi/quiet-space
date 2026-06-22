@@ -12,6 +12,7 @@ window.VideoStorage = {
     AUDIO_KEY: 'customAudio',      // 存储自定义音频
     VIDEO_VOLUME_KEY: 'videoVolume',  // 视频音量（0-1）
     AUDIO_VOLUME_KEY: 'audioVolume',  // 背景音频音量（0-1）
+    TIMELINE_EFFECT_KEY: 'timelineEffect',  // 时间线效果
 
     /**
      * 初始化 IndexedDB
@@ -364,6 +365,38 @@ window.VideoStorage = {
             const transaction = db.transaction([this.STORE_NAME], 'readwrite');
             const store = transaction.objectStore(this.STORE_NAME);
             const request = store.put(volume, this.AUDIO_VOLUME_KEY);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    // ===== 时间线效果设置 =====
+
+    /**
+     * 获取时间线效果
+     * @returns {Promise<string>}
+     */
+    async getTimelineEffect() {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.STORE_NAME], 'readonly');
+            const store = transaction.objectStore(this.STORE_NAME);
+            const request = store.get(this.TIMELINE_EFFECT_KEY);
+            request.onsuccess = () => resolve(request.result ?? 'fade-scale');
+            request.onerror = () => reject(request.error);
+        });
+    },
+
+    /**
+     * 设置时间线效果
+     * @param {string} effect - 效果名称
+     */
+    async setTimelineEffect(effect) {
+        const db = await this.initDB();
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([this.STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(this.STORE_NAME);
+            const request = store.put(effect, this.TIMELINE_EFFECT_KEY);
             request.onsuccess = () => resolve();
             request.onerror = () => reject(request.error);
         });

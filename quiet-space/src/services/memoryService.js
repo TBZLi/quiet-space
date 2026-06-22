@@ -7,8 +7,8 @@ const MemoryService = {
     /**
      * 获取 AI API 配置
      */
-    _getApiConfig() {
-        const settings = Storage.getSettings();
+    async _getApiConfig() {
+        const settings = await Storage.getSettings();
         if (!settings.apiEndpoint || !settings.apiKey) {
             return null;
         }
@@ -23,7 +23,7 @@ const MemoryService = {
      * 调用 AI API
      */
     async _callAI(prompt, maxTokens = 1000) {
-        const config = this._getApiConfig();
+        const config = await this._getApiConfig();
         if (!config) return null;
 
         try {

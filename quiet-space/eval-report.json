@@ -1,0 +1,142 @@
+{
+  "timestamp": "2026-06-22T02:40:13.928Z",
+  "total_tests": 7,
+  "passed": 7,
+  "failed": 0,
+  "overall_score": 100,
+  "details": [
+    {
+      "id": "test-1",
+      "name": "基本信息召回",
+      "expected_keywords": [
+        "李天"
+      ],
+      "expected_found": [
+        "李天"
+      ],
+      "unexpected_keywords": [],
+      "unexpected_found": [],
+      "score": 100,
+      "weight": 1,
+      "passed": true,
+      "notes": ""
+    },
+    {
+      "id": "test-2",
+      "name": "项目信息召回",
+      "expected_keywords": [
+        "Quiet Space",
+        "AI",
+        "陪伴"
+      ],
+      "expected_found": [
+        "Quiet Space",
+        "AI",
+        "陪伴"
+      ],
+      "unexpected_keywords": [],
+      "unexpected_found": [],
+      "score": 100,
+      "weight": 1,
+      "passed": true,
+      "notes": ""
+    },
+    {
+      "id": "test-3",
+      "name": "情绪变化检测",
+      "expected_keywords": [
+        "好多了"
+      ],
+      "expected_found": [
+        "好多了"
+      ],
+      "unexpected_keywords": [
+        "压力大",
+        "不好"
+      ],
+      "unexpected_found": [],
+      "score": 100,
+      "weight": 1.5,
+      "passed": true,
+      "notes": "应该只召回最新的情绪状态，忽略旧的情绪"
+    },
+    {
+      "id": "test-4",
+      "name": "人生线程理解",
+      "expected_keywords": [
+        "考研",
+        "北京大学"
+      ],
+      "expected_found": [
+        "考研",
+        "北京大学"
+      ],
+      "unexpected_keywords": [],
+      "unexpected_found": [],
+      "score": 100,
+      "weight": 2,
+      "passed": true,
+      "notes": ""
+    },
+    {
+      "id": "test-5",
+      "name": "时间区分能力",
+      "expected_keywords": [
+        "2025",
+        "2026",
+        "没通过",
+        "通过"
+      ],
+      "expected_found": [
+        "2025",
+        "2026",
+        "没通过",
+        "通过"
+      ],
+      "unexpected_keywords": [],
+      "unexpected_found": [],
+      "score": 100,
+      "weight": 2,
+      "passed": true,
+      "notes": ""
+    },
+    {
+      "id": "test-6",
+      "name": "否定信息处理",
+      "expected_keywords": [
+        "不喜欢"
+      ],
+      "expected_found": [
+        "不喜欢"
+      ],
+      "unexpected_keywords": [
+        "喜欢"
+      ],
+      "unexpected_found": [],
+      "score": 100,
+      "weight": 2,
+      "passed": true,
+      "notes": "应该只召回最新的态度，忽略旧的态度"
+    },
+    {
+      "id": "test-7",
+      "name": "多线程混合",
+      "expected_keywords": [
+        "项目汇报",
+        "英语考试",
+        "装修"
+      ],
+      "expected_found": [
+        "项目汇报",
+        "英语考试",
+        "装修"
+      ],
+      "unexpected_keywords": [],
+      "unexpected_found": [],
+      "score": 100,
+      "weight": 2,
+      "passed": true,
+      "notes": ""
+    }
+  ]
+}

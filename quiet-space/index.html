@@ -11,6 +11,7 @@
             --bg-deep: #000000;
             --bg-panel: rgba(255, 255, 255, 0.03);
             --accent-amber: #c9a96e;
+            --accent-secondary: #d4a574;
             --text-soft: #e8e8e8;
             --text-muted: #b0b0c0;
             --border-subtle: rgba(255, 255, 255, 0.08);
@@ -303,6 +304,73 @@
             }
         }
 
+        // 从视频提取主色调
+        function extractColorsFromVideo() {
+            const video = document.querySelector('.video-background');
+            if (!video || video.readyState < 2) return;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 50;
+            canvas.height = 50;
+            const ctx = canvas.getContext('2d');
+
+            ctx.drawImage(video, 0, 0, 50, 50);
+            const imageData = ctx.getImageData(0, 0, 50, 50);
+            const data = imageData.data;
+
+            const colors = [];
+            for (let i = 0; i < data.length; i += 16) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const brightness = (r + g + b) / 3;
+                if (brightness > 30 && brightness < 240) {
+                    colors.push([r, g, b]);
+                }
+            }
+
+            if (colors.length < 10) return;
+
+            const avg = [0, 0, 0];
+            colors.forEach(c => {
+                avg[0] += c[0];
+                avg[1] += c[1];
+                avg[2] += c[2];
+            });
+            const primary = avg.map(v => Math.min(255, Math.round(v / colors.length * 1.3)));
+
+            const secondary = [
+                Math.min(255, Math.round(primary[0] * 1.15)),
+                Math.min(255, Math.round(primary[1] * 1.15)),
+                Math.min(255, Math.round(primary[2] * 1.15))
+            ];
+
+            const hexPrimary = rgbToHex(primary[0], primary[1], primary[2]);
+            const hexSecondary = rgbToHex(secondary[0], secondary[1], secondary[2]);
+            document.documentElement.style.setProperty('--accent-amber', hexPrimary);
+            document.documentElement.style.setProperty('--accent-secondary', hexSecondary);
+
+            // 存储颜色
+            localStorage.setItem('videoColors', JSON.stringify({ primary: hexPrimary, secondary: hexSecondary }));
+        }
+
+        function rgbToHex(r, g, b) {
+            return '#' + [r, g, b].map(x => {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
+        // 页面加载时立即应用存储的颜色
+        (function() {
+            const stored = localStorage.getItem('videoColors');
+            if (stored) {
+                const colors = JSON.parse(stored);
+                document.documentElement.style.setProperty('--accent-amber', colors.primary);
+                document.documentElement.style.setProperty('--accent-secondary', colors.secondary);
+            }
+        })();
+
         window.addEventListener('load', async () => {
             await loadVideoBackground();
             await loadBackgroundAudio();
@@ -319,6 +387,11 @@
         }
         document.addEventListener('click', enableAudioOnInteraction);
         document.addEventListener('scroll', enableAudioOnInteraction);
+
+        // 视频加载后提取颜色
+        document.querySelector('.video-background').addEventListener('loadeddata', () => {
+            setTimeout(extractColorsFromVideo, 500);
+        });
     </script>
 </body>
 </html>

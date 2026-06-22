@@ -35,7 +35,7 @@ const AIService = {
      * @returns {Promise<string>} AI回复
      */
     async chat(message, history = [], enableMemory = true) {
-        const settings = Storage.getSettings();
+        const settings = await Storage.getSettings();
 
         if (!settings.apiEndpoint || !settings.apiKey) {
             return "请先在设置中配置API Key。";
@@ -147,19 +147,99 @@ const AIService = {
             parts.push(`提到的人物：${wm.relevantPeople.map(p => p.content).join('；')}`);
         }
 
+        // 情绪去重：同一话题只保留最新情绪状态
         if (wm.emotionalContext?.length > 0) {
-            parts.push(`最近情绪：${wm.emotionalContext.map(e => e.content).join('；')}`);
+            const dedupedEmotions = this._dedupEmotions(wm.emotionalContext);
+            parts.push(`最近情绪：${dedupedEmotions.map(e => e.content).join('；')}`);
         }
 
         if (wm.recentEpisodes?.length > 0) {
             parts.push(`最近发生：${wm.recentEpisodes.map(e => `${e.date} ${e.content}`).join('；')}`);
         }
 
+        // 偏好去重：检测否定词，覆盖旧偏好
         if (wm.relevantPreferences?.length > 0) {
-            parts.push(`用户偏好：${wm.relevantPreferences.map(p => p.content).join('；')}`);
+            const dedupedPreferences = this._dedupPreferences(wm.relevantPreferences);
+            parts.push(`用户偏好：${dedupedPreferences.map(p => p.content).join('；')}`);
         }
 
         return parts.join('\n');
+    },
+
+    /**
+     * 情绪去重：检测"但是/不过/现在"等转折词，只保留最新情绪
+     * 例如："心情不好" + "但是好多了" → 只保留 "好多了"
+     */
+    _dedupEmotions(emotions) {
+        if (emotions.length <= 1) return emotions;
+
+        // 更精确的转折词匹配 - 需要同时包含转折词和情绪词
+        const turnKeywords = ['但是', '不过', '但是现在', '不过现在', '后来', '然后'];
+        const positiveRecovery = ['好多了', '开心', '高兴', '放松', '平静', '不错', '好了', '恢复'];
+
+        // 找到最后一个包含恢复词的情绪
+        let lastRecoveryIndex = -1;
+        for (let i = emotions.length - 1; i >= 0; i--) {
+            const content = emotions[i].content;
+            const isRecovery = positiveRecovery.some(kw => content.includes(kw));
+            if (isRecovery) {
+                lastRecoveryIndex = i;
+                break;
+            }
+        }
+
+        // 如果找到了恢复点，只返回恢复后的情绪
+        if (lastRecoveryIndex >= 0) {
+            return [emotions[lastRecoveryIndex]];
+        }
+
+        // 如果没有恢复点，检查是否有转折词
+        let hasTurn = false;
+        for (let i = emotions.length - 1; i >= 0; i--) {
+            const content = emotions[i].content;
+            const isTurn = turnKeywords.some(kw => content.includes(kw));
+            if (isTurn) {
+                hasTurn = true;
+                // 如果有转折词，返回转折词之后的情绪
+                return emotions.slice(i);
+            }
+        }
+
+        return emotions;
+    },
+
+    /**
+     * 偏好去重：检测否定词，覆盖旧偏好
+     * 例如："喜欢篮球" + "现在不喜欢了" → 只保留 "现在不喜欢了"
+     */
+    _dedupPreferences(preferences) {
+        if (preferences.length <= 1) return preferences;
+
+        // 更精确的否定词匹配 - 需要同时包含否定词和对象
+        const negationPatterns = [
+            '不喜欢', '不要', '不想', '不爱', '没兴趣',
+            '以前喜欢', '以前爱', '以前想',
+            '现在不', '现在不想', '现在不要',
+            '但是不', '不过不', '但是现在不', '不过现在不'
+        ];
+
+        // 找到最后一个包含否定词的偏好
+        let lastNegationIndex = -1;
+        for (let i = preferences.length - 1; i >= 0; i--) {
+            const content = preferences[i].content;
+            const isNegated = negationPatterns.some(kw => content.includes(kw));
+            if (isNegated) {
+                lastNegationIndex = i;
+                break;
+            }
+        }
+
+        // 如果找到了否定点，只返回否定后的偏好
+        if (lastNegationIndex >= 0) {
+            return [preferences[lastNegationIndex]];
+        }
+
+        return preferences;
     },
 
     /**
@@ -182,7 +262,7 @@ const AIService = {
      * @returns {Promise<Object>} 日记对象 {title, content, emotions}
      */
     async generateDiary(messages) {
-        const settings = Storage.getSettings();
+        const settings = await Storage.getSettings();
 
         if (!settings.apiEndpoint || !settings.apiKey) {
             return {
@@ -252,7 +332,7 @@ ${messages.map(m => `${m.role === 'user' ? '用户' : 'AI'}: ${m.content}`).join
      * @returns {Promise<Object>} 日记对象 {title, content, emotions}
      */
     async organizeFragments(fragments) {
-        const settings = Storage.getSettings();
+        const settings = await Storage.getSettings();
 
         if (!settings.apiEndpoint || !settings.apiKey) {
             return null;
@@ -313,7 +393,7 @@ ${fragments.map((f, i) => `${i + 1}. ${f.text}`).join('\n')}
      * @returns {Promise<boolean>} 是否成功
      */
     async testConnection() {
-        const settings = Storage.getSettings();
+        const settings = await Storage.getSettings();
 
         if (!settings.apiEndpoint || !settings.apiKey) {
             return false;

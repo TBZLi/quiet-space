@@ -10,6 +10,8 @@
 
 **平台**：纯Web应用（浏览器访问），不依赖桌面客户端
 
+**数据存储**：用户本地数据库（MySQL），通过本地后端服务连接
+
 ## 全局设计原则
 
 ### 视频背景是核心视觉层
@@ -474,6 +476,57 @@ Memory Consolidation（记忆合并）
 
 ---
 
+### 功能 9：数据库连接（Database Connection）
+
+**功能描述**：配置用户本地 MySQL 数据库连接，实现数据跨浏览器/设备可用。用户需要先安装 MySQL，产品自动完成表结构初始化。
+
+**输入**：
+- 数据库连接信息：Host / Port / User / Password / Database
+- 数据库类型：MySQL（后续扩展 PostgreSQL / SQL Server）
+
+**输出**：
+- 连接测试结果：成功/失败提示
+- 数据库初始化状态：已创建/已存在
+- 数据迁移状态（如果有旧数据）
+
+**业务规则**：
+
+*首次使用流程*：
+- 用户打开产品 → 检测无数据库配置 → 引导配置数据库连接
+- 配置完成后自动测试连接
+- 连接成功后自动创建数据库（如果不存在）和所有表
+- 创建成功后进入主界面
+
+*配置管理*：
+- 设置页面提供数据库配置入口
+- 支持修改数据库连接（切换到其他数据库）
+- 连接信息加密存储在本地配置文件中
+- 修改连接后自动迁移数据到新数据库（可选）
+
+*数据迁移*：
+- 从 IndexedDB 迁移到 MySQL（仅首次升级时）
+- 迁移前自动备份旧数据
+- 迁移过程有进度提示
+- 迁移失败可回滚
+
+*自动建表*：
+- 产品首次连接数据库时，自动检测表结构
+- 如果表不存在，自动创建所有表和索引
+- 如果表已存在但版本不兼容，提供升级脚本
+
+**异常处理**：
+- 数据库连接失败：明确提示错误原因（连接拒绝/认证失败/数据库不存在）
+- 自动建表失败：提示用户手动创建数据库，提供 SQL 脚本
+- 数据迁移失败：自动回滚，提示用户检查旧数据
+- 数据库版本不兼容：提示用户升级数据库或提供兼容方案
+- 用户未安装 MySQL：提示安装教程和下载链接
+
+**优先级**：高
+
+**状态**：待开发
+
+---
+
 ### 功能 8：碎碎念（Fragment Notes）
 
 **功能描述**：用户记录零散想法的地方。不同于"倾诉"的实时对话，碎碎念是用户自己打字记录脑子里的碎片念头，AI在旁边默默整理，帮用户把碎片拼成完整日记。支持时间线可视化浏览，碎片可单独或批量总结。
@@ -532,12 +585,13 @@ Memory Consolidation（记忆合并）
 ## 功能优先级
 
 ### 高优先级（MVP必须有）
-1. **聊天转日记** - 产品核心体验，验证"用户愿不愿意用AI帮写日记"
-2. **基础记忆系统** - 陪伴感的基础，"它真的记得我"
-3. **情绪记录** - 后台自动分析，为后续情绪时间线打基础
-4. **日记编辑与浏览** - 日记的查看、编辑、搜索
-5. **AI人格系统** - 至少有预设人格选择，自定义可简化
-6. **API配置** - 没有这个用户无法使用AI功能
+1. **数据库连接** - 数据存储基础，没有这个其他功能无法工作
+2. **API配置** - 没有这个用户无法使用AI功能
+3. **聊天转日记** - 产品核心体验，验证"用户愿不愿意用AI帮写日记"
+4. **基础记忆系统** - 陪伴感的基础，"它真的记得我"
+5. **情绪记录** - 后台自动分析，为后续情绪时间线打基础
+6. **日记编辑与浏览** - 日记的查看、编辑、搜索
+7. **AI人格系统** - 至少有预设人格选择，自定义可简化
 
 ### 中优先级（第一版尽量有）
 1. **环境场景（壁炉夜谈/夜雨窗边）** - 沉浸式氛围背景
@@ -635,9 +689,10 @@ Memory Consolidation（记忆合并）
 
 ### 安全要求
 - API Key加密存储，不以明文保存
-- 所有日记、对话、记忆数据纯本地存储
+- 数据存储在用户本地数据库，用户完全控制
 - 不收集任何用户数据到远程服务器
-- 日记导出功能保证用户随时可带走自己的数据
+- 数据库连接信息加密存储
+- 支持数据导出功能，保证用户随时可带走自己的数据
 
 ### 可用性要求
 - API配置流程：3步完成，不需要技术知识
@@ -661,28 +716,124 @@ Memory Consolidation（记忆合并）
 - **富文本编辑器**：Tiptap 或 原生contenteditable
 
 ### 后端
-- **服务器**：Node.js + http模块（轻量，无需框架）
+- **服务器**：Node.js + Express（轻量级）
+- **数据库驱动**：mysql2（MySQL连接）
 - **API代理**：处理跨域请求，转发到AI API
 - **端口**：8080
+- **部署方式**：打包成exe，用户双击即可运行
 
 ### 数据存储
-- **前端存储**：IndexedDB（浏览器本地数据库）
-  - 数据库名：QuietSpaceDB
-  - 存储内容：日记、对话、碎碎念、记忆、情绪时间线、设置、视频背景
-  - 优点：容量大（几百MB~几GB）、支持结构化数据、异步不阻塞、事务安全
-  - 数据纯本地，符合产品隐私定位
+- **数据库**：MySQL（用户本地安装）
+- **存储内容**：日记、对话、碎碎念、记忆、情绪时间线、设置
+- **连接方式**：用户在设置页面配置数据库连接信息（host/port/user/password/database）
+- **初始化**：产品首次连接时自动创建表结构
+- **优点**：数据不绑死浏览器，跨浏览器/设备可用，用户完全控制数据
 
-#### 数据库表结构
+#### 数据库连接配置
 
-| 表名 | 用途 | 主要字段 |
-|-----|------|---------|
-| `diaries` | 日记 | id, title, content, emotions[], date, source, messages[] |
-| `chats` | 对话 | id, title, messages[{role, content, timestamp, analysis?}], date, emotionSummary{primary, secondary, intensity} |
-| `fragments` | 碎碎念 | id, text, date, emotion, organized, diaryId |
-| `memories` | AI记忆 | id, type, content, importance, confidence, isConfirmed, sourceId, tags[], lastReferencedAt, referenceCount, decayScore, status, temporal{...}, threadKey, instance, parentThreadId, memoryCategory |
-| `emotionTimeline` | 情绪时间线 | id, timestamp, sourceId, sourceType, emotions{anxiety:0.7,...}, dominantEmotion |
-| `settings` | 设置 | 键值对存储 |
-| `videoBackground` | 视频背景 | customVideos[], activeVideoId |
+用户需要在设置页面配置以下信息：
+
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| Host | 数据库地址 | localhost |
+| Port | 数据库端口 | 3306 |
+| User | 数据库用户名 | root |
+| Password | 数据库密码 | - |
+| Database | 数据库名称 | quiet_space |
+
+**注意事项**：
+- 用户需要先安装 MySQL 数据库
+- 首次连接时，产品会自动创建数据库（如果不存在）和所有表
+- 连接信息加密存储在本地配置文件中
+
+#### 数据库表结构（MySQL）
+
+```sql
+-- 日记表
+CREATE TABLE diaries (
+  id VARCHAR(36) PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  content TEXT,
+  emotions JSON,
+  date DATETIME,
+  source ENUM('chat', 'manual', 'fragment') DEFAULT 'manual',
+  messages JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 对话表
+CREATE TABLE chats (
+  id VARCHAR(36) PRIMARY KEY,
+  title VARCHAR(255),
+  messages JSON,
+  date DATETIME,
+  emotion_summary JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 碎碎念表
+CREATE TABLE fragments (
+  id VARCHAR(36) PRIMARY KEY,
+  text TEXT,
+  date DATETIME,
+  emotion VARCHAR(50),
+  organized BOOLEAN DEFAULT FALSE,
+  diary_id VARCHAR(36),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (diary_id) REFERENCES diaries(id)
+);
+
+-- AI记忆表
+CREATE TABLE memories (
+  id VARCHAR(36) PRIMARY KEY,
+  type ENUM('event', 'person', 'preference', 'thread') NOT NULL,
+  content TEXT NOT NULL,
+  importance INT DEFAULT 5,
+  confidence DECIMAL(3,2) DEFAULT 0.5,
+  is_confirmed BOOLEAN DEFAULT FALSE,
+  source_id VARCHAR(36),
+  tags JSON,
+  last_referenced_at DATETIME,
+  reference_count INT DEFAULT 0,
+  decay_score DECIMAL(3,2) DEFAULT 1.0,
+  status ENUM('active', 'archived') DEFAULT 'active',
+  temporal JSON,
+  thread_key VARCHAR(100),
+  instance VARCHAR(100),
+  parent_thread_id VARCHAR(36),
+  memory_category ENUM('identity', 'relationship', 'project', 'event', 'emotion') DEFAULT 'event',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 情绪时间线表
+CREATE TABLE emotion_timeline (
+  id VARCHAR(36) PRIMARY KEY,
+  timestamp DATETIME,
+  source_id VARCHAR(36),
+  source_type ENUM('chat', 'diary', 'fragment'),
+  emotions JSON,
+  dominant_emotion VARCHAR(50),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 设置表
+CREATE TABLE settings (
+  setting_key VARCHAR(100) PRIMARY KEY,
+  setting_value TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 索引
+CREATE INDEX idx_diaries_date ON diaries(date);
+CREATE INDEX idx_chats_date ON chats(date);
+CREATE INDEX idx_fragments_date ON fragments(date);
+CREATE INDEX idx_memories_thread_key ON memories(thread_key);
+CREATE INDEX idx_memories_status ON memories(status);
+CREATE INDEX idx_emotion_timeline_timestamp ON emotion_timeline(timestamp);
+```
 
 #### 记忆类型说明
 
@@ -829,10 +980,10 @@ Memory Consolidation（记忆合并）
 
 ---
 
-**文档版本**：2.7.0
+**文档版本**：3.0.0
 
-**最后更新**：2026-06-15
+**最后更新**：2026-06-17
 
-**重大变更**：Memory Engine V2 架构，支持时间推理、线程图谱、自然人格化召回
+**重大变更**：数据存储从 IndexedDB 迁移到用户本地 MySQL 数据库，支持跨浏览器/设备访问
 
-**下次更新计划**：V2 模块实现后更新
+**下次更新计划**：数据库连接功能实现后更新

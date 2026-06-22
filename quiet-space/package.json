@@ -1,0 +1,17 @@
+{
+  "name": "quiet-space",
+  "version": "3.0.0",
+  "description": "有温度的AI日记Web应用",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.6.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
